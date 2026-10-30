@@ -1,0 +1,24 @@
+{
+  "name": "elixir-sort",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Offline PWA hra na třídění barev (water sort), inspirovaná hrou Magic Sort.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "dev": "vite --host",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.node.json",
+    "test": "node --test \"src/**/*.test.ts\"",
+    "levels": "node scripts/levels-report.ts",
+    "icons": "python3 scripts/make-icons.py"
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.0",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.0"
+  }
+}

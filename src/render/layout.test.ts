@@ -34,9 +34,9 @@ describe('rozložení', () => {
     assert.equal(l.rows, 1);
   });
 
-  test('24 lahví s kapacitami až 8 + přidaná lahev se vejde na iPhone SE se šířkou ≥ 38 px', () => {
+  test('24 lahví s kapacitami až 8 + přidaná lahev se vejde na iPhone SE se šířkou ≥ 38,5 px', () => {
     const caps = [8, 7, 7, 6, 6, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3, 2, 2, 4, 4];
-    const se = check(caps, IPHONE_SE, 38);
+    const se = check(caps, IPHONE_SE, 38.5);
     const i14 = check(caps, IPHONE_14, 40);
     console.log(`    šířka lahve: SE ${se.w} px, iPhone 14 ${i14.w} px`);
   });

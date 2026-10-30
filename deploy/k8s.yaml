@@ -1,0 +1,57 @@
+# Příklad nasazení na k3s (Traefik ingress). Nahraď IMAGE a HOST.
+# PWA (instalace na plochu, offline) potřebuje HTTPS – ingress s platným certifikátem
+# (např. cert-manager + Let's Encrypt) nebo Cloudflare Tunnel.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elixir-sort
+  labels: { app: elixir-sort }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: elixir-sort }
+  template:
+    metadata:
+      labels: { app: elixir-sort }
+    spec:
+      containers:
+        - name: web
+          image: IMAGE # např. registry.example.com/elixir-sort:0.1.0
+          ports:
+            - containerPort: 80
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 200m, memory: 64Mi }
+          readinessProbe:
+            httpGet: { path: /index.html, port: 80 }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elixir-sort
+spec:
+  selector: { app: elixir-sort }
+  ports:
+    - port: 80
+      targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: elixir-sort
+  annotations:
+    # cert-manager.io/cluster-issuer: letsencrypt   # odkomentuj, pokud používáš cert-manager
+spec:
+  rules:
+    - host: HOST # např. elixir.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: elixir-sort
+                port: { number: 80 }
+  tls:
+    - hosts: [HOST]
+      secretName: elixir-sort-tls

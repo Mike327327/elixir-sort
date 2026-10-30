@@ -77,7 +77,7 @@ export function computeLayout(caps: number[], width: number, height: number, opt
   const maxW = opts.maxW ?? 76;
   const kMin = opts.kMin ?? 0.42;
   const kMax = opts.kMax ?? 0.72;
-  const gapRatio = opts.gapRatio ?? 0.36;
+  const gapRatio = opts.gapRatio ?? 0.32;
   const rowGapRatio = opts.rowGapRatio ?? 0.32;
   const sidePad = opts.sidePad ?? 10;
   const n = caps.length;
@@ -100,7 +100,8 @@ export function computeLayout(caps: number[], width: number, height: number, opt
     }
     const perRow = Math.max(...rows.map((x) => x.length));
     if (perRow > 9) continue;
-    const wByWidth = (width - 2 * sidePad) / (perRow + (perRow - 1) * gapRatio);
+    // Límec hrdla přesahuje tělo o 7 % šířky na každou stranu.
+    const wByWidth = (width - 2 * sidePad) / (perRow + (perRow - 1) * gapRatio + 0.14);
     const maxCaps = rows.map((row) => Math.max(...row.map((i) => caps[i])));
     // Výška = Σ řad (výška lahve × (1 + zdvih)) + mezery mezi řadami.
     const heightFor = (k: number) =>

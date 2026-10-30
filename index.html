@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="cs">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#cfa6ef" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Elixir Sort" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="description" content="Offline hra na třídění barev – přelévej lektvary, dokud není v každé lahvi jen jedna barva." />
+    <title>Elixir Sort</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- Úvodní obrazovka -->
+      <section id="screen-home" class="screen active" aria-label="Úvod">
+        <div class="home-top">
+          <button class="icon-btn" id="btn-home-settings" aria-label="Nastavení">
+            <svg viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>
+          </button>
+        </div>
+        <div class="home-center">
+          <svg class="logo" viewBox="0 0 200 220" aria-hidden="true">
+            <defs>
+              <clipPath id="flask-in"><path d="M78 40h44v52l42 78c8 16-2 30-20 30H56c-18 0-28-14-20-30l42-78Z"/></clipPath>
+              <linearGradient id="glass" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity=".15"/></linearGradient>
+            </defs>
+            <g clip-path="url(#flask-in)">
+              <rect x="0" y="0" width="200" height="220" fill="url(#glass)"/>
+              <rect x="0" y="176" width="200" height="40" fill="#7a3fe0"/>
+              <rect x="0" y="150" width="200" height="27" fill="#2f9bff"/>
+              <rect x="0" y="124" width="200" height="27" fill="#ffd23a"/>
+              <rect x="0" y="100" width="200" height="25" fill="#ff5fae"/>
+              <ellipse cx="100" cy="100" rx="60" ry="5" fill="#ffa3d2"/>
+            </g>
+            <path d="M78 40h44v52l42 78c8 16-2 30-20 30H56c-18 0-28-14-20-30l42-78Z" fill="none" stroke="#fff" stroke-width="5" stroke-linejoin="round"/>
+            <rect x="70" y="28" width="60" height="14" rx="7" fill="#fff"/>
+            <path d="M88 60v30" stroke="#fff" stroke-opacity=".7" stroke-width="6" stroke-linecap="round"/>
+            <g fill="#fff">
+              <path d="M160 34l4 10 10 4-10 4-4 10-4-10-10-4 10-4Z"/>
+              <path d="M38 70l3 7 7 3-7 3-3 7-3-7-7-3 7-3Z"/>
+              <circle cx="150" cy="96" r="4"/>
+            </g>
+          </svg>
+          <h1 class="title" data-s="appName">Elixir Sort</h1>
+          <p class="subtitle" id="home-stats"></p>
+          <button class="big-btn" id="btn-play">Hrát</button>
+          <p class="install-hint" id="install-hint" hidden></p>
+        </div>
+      </section>
+
+      <!-- Hra -->
+      <section id="screen-game" class="screen" aria-label="Hra">
+        <header class="topbar">
+          <button class="icon-btn" id="btn-back" aria-label="Zpět na úvod">
+            <svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h13V10"/><path d="M10 19.5v-5h4v5"/></svg>
+          </button>
+          <div class="level-info">
+            <span id="level-label">Level 1</span>
+            <span id="tier-badge" class="tier" hidden></span>
+          </div>
+          <button class="icon-btn" id="btn-game-settings" aria-label="Nastavení">
+            <svg viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>
+          </button>
+        </header>
+        <div class="board" id="board">
+          <canvas id="canvas"></canvas>
+          <div class="loading" id="loading" hidden>
+            <div class="spinner"></div>
+            <p id="loading-text"></p>
+            <button class="pill-btn" id="btn-retry" hidden></button>
+          </div>
+          <div class="banner" id="banner" hidden></div>
+        </div>
+        <footer class="bottombar">
+          <button class="tool-btn" id="btn-restart">
+            <svg viewBox="0 0 24 24"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1"/><path d="M3 4v5h5"/></svg>
+            <span data-s="restart">Restart</span>
+          </button>
+          <button class="tool-btn" id="btn-undo">
+            <svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
+            <span data-s="undo">Zpět</span>
+          </button>
+          <button class="tool-btn" id="btn-add">
+            <svg viewBox="0 0 24 24"><path d="M7 3h6"/><path d="M8 3v13a3 3 0 0 0 4 0V3"/><path d="M18 10v8M14 14h8"/></svg>
+            <span data-s="addBottle">+1 lahev</span>
+          </button>
+        </footer>
+      </section>
+
+      <!-- Modální panely -->
+      <div class="overlay" id="overlay" hidden>
+        <div class="card" id="panel-win" hidden>
+          <div class="card-burst" aria-hidden="true">✦</div>
+          <h2 id="win-title"></h2>
+          <p id="win-moves"></p>
+          <button class="big-btn" id="btn-next" data-s="next">Další level</button>
+        </div>
+
+        <div class="card" id="panel-stuck" hidden>
+          <h2 data-s="stuckTitle">Žádný tah</h2>
+          <p data-s="stuckText"></p>
+          <div class="card-actions">
+            <button class="pill-btn" id="btn-stuck-undo" data-s="undo">Zpět</button>
+            <button class="pill-btn" id="btn-stuck-add" data-s="addBottle">+1 lahev</button>
+            <button class="pill-btn" id="btn-stuck-restart" data-s="restart">Restart</button>
+          </div>
+        </div>
+
+        <div class="card" id="panel-settings" hidden>
+          <h2 data-s="settings">Nastavení</h2>
+          <label class="toggle">
+            <span data-s="sound">Zvuky</span>
+            <input type="checkbox" id="opt-sound" />
+            <i></i>
+          </label>
+          <label class="toggle">
+            <span data-s="symbols">Symboly pro barvoslepé</span>
+            <input type="checkbox" id="opt-symbols" />
+            <i></i>
+          </label>
+          <button class="pill-btn danger" id="btn-reset" data-s="resetProgress">Smazat postup</button>
+          <p class="muted" id="app-version"></p>
+          <button class="big-btn" id="btn-settings-close" data-s="close">Zavřít</button>
+        </div>
+
+        <div class="card" id="panel-tip" hidden>
+          <div class="tip-demo" aria-hidden="true"><span>?</span></div>
+          <h2 data-s="tipHiddenTitle">Skryté barvy</h2>
+          <p data-s="tipHiddenText"></p>
+          <button class="big-btn" id="btn-tip-ok" data-s="tipOk">Rozumím</button>
+        </div>
+      </div>
+
+      <div id="debug" hidden></div>
+    </div>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

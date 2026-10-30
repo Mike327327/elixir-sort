@@ -26,12 +26,15 @@ export function topBlock(bottle: Bottle, isHidden: HiddenFn): TopBlock | null {
   return { color: top.c, count };
 }
 
-/** Lahev je plná jedné barvy bez skrytých jednotek → má zátku a nejde s ní hýbat. */
-export function isClosed(bottle: Bottle, cap: number, isHidden: HiddenFn): boolean {
+/**
+ * Lahev je plná jedné barvy → má zátku a nejde s ní hýbat.
+ * Skryté jednotky se počítají podle skutečné barvy; při uzavření se odkryjí (viz Game).
+ */
+export function isClosed(bottle: Bottle, cap: number): boolean {
   if (bottle.length !== cap || cap === 0) return false;
   const c = bottle[0].c;
   for (const u of bottle) {
-    if (u.c !== c || isHidden(u)) return false;
+    if (u.c !== c) return false;
   }
   return true;
 }
@@ -49,7 +52,7 @@ export function pourAmount(
   const dst = bottles[to];
   if (!src || !dst) return 0;
   if (src.length === 0) return 0;
-  if (isClosed(src, caps[from], isHidden)) return 0;
+  if (isClosed(src, caps[from])) return 0;
   const space = caps[to] - dst.length;
   if (space <= 0) return 0;
   const block = topBlock(src, isHidden);
@@ -84,11 +87,11 @@ export function revertPour(bottles: Bottle[], move: Move): void {
 }
 
 /** Výhra: každá neprázdná lahev je plná jedné barvy a uzavřená. */
-export function isWon(bottles: Bottle[], caps: number[], isHidden: HiddenFn): boolean {
+export function isWon(bottles: Bottle[], caps: number[]): boolean {
   for (let i = 0; i < bottles.length; i++) {
     const b = bottles[i];
     if (b.length === 0) continue;
-    if (!isClosed(b, caps[i], isHidden)) return false;
+    if (!isClosed(b, caps[i])) return false;
   }
   return true;
 }

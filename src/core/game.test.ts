@@ -135,7 +135,7 @@ describe('skryté barvy', () => {
   });
 
   test('blok končí u skryté jednotky a ta se po odlití odkryje', () => {
-    const g = new Game(makeLevel([3, 3], ['11?1', '']));
+    const g = new Game(makeLevel([4, 3], ['11?1', '']));
     const r = g.pour(0, 1);
     assert.ok(r);
     assert.equal(r.move.count, 1, 'skrytá jednotka stejné barvy se nepřelila');
@@ -159,10 +159,20 @@ describe('skryté barvy', () => {
     assert.equal(g.isHidden(g.bottles[0][1]), false);
   });
 
-  test('lahev se skrytou jednotkou není uzavřená', () => {
+  test('plná jednobarevná lahev se skrytou jednotkou se uzavře a odkryje ji', () => {
     const def = makeLevel([3, 3], ['00?0', '']);
     const g = new Game(def);
-    assert.equal(g.isClosed(0), false);
+    assert.equal(g.isClosed(0), true);
+    assert.equal(g.isHidden(g.bottles[0][1]), false);
+  });
+
+  test('dolití do plné barvy odkryje skrytou jednotku uvnitř', () => {
+    const g = new Game(makeLevel([3, 3], ['0?0', '10']));
+    assert.equal(g.isHidden(g.bottles[0][0]), true);
+    const r = g.pour(1, 0);
+    assert.ok(r);
+    assert.equal(r.closedTarget, true);
+    assert.ok(r.revealed.includes(g.bottles[0][0].id));
   });
 
   test('na skrytou jednotku nejde přilévat (není to vrchol, ale kontrola cíle)', () => {

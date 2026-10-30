@@ -73,21 +73,29 @@ export class Game {
     this.revealTops();
   }
 
-  /** Odkryje skryté jednotky, které jsou na vrcholu. Vrací nově odkrytá id. */
+  /**
+   * Odkryje skryté jednotky, které jsou vidět: vrchol každé lahve a celý obsah uzavřené lahve.
+   * Vrací nově odkrytá id.
+   */
   revealTops(): number[] {
     const out: number[] = [];
-    for (const b of this.bottles) {
-      const top = b[b.length - 1];
-      if (top && this.isHidden(top)) {
-        this.revealed.add(top.id);
-        out.push(top.id);
+    const reveal = (u: Unit) => {
+      if (this.isHidden(u)) {
+        this.revealed.add(u.id);
+        out.push(u.id);
       }
+    };
+    for (let i = 0; i < this.bottles.length; i++) {
+      const b = this.bottles[i];
+      if (b.length === 0) continue;
+      if (isClosed(b, this.caps[i])) b.forEach(reveal);
+      else reveal(b[b.length - 1]);
     }
     return out;
   }
 
   isClosed(i: number): boolean {
-    return isClosed(this.bottles[i], this.caps[i], this.isHidden);
+    return isClosed(this.bottles[i], this.caps[i]);
   }
 
   canSelect(i: number): boolean {
@@ -149,7 +157,7 @@ export class Game {
   }
 
   isWon(): boolean {
-    return isWon(this.bottles, this.caps, this.isHidden);
+    return isWon(this.bottles, this.caps);
   }
 
   /** Bezvýchodná situace: žádný platný tah a level není vyhraný. */

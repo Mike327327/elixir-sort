@@ -18,6 +18,8 @@ export interface Move {
 export interface LevelMeta {
   /** Podíl náhodných „hladových“ hráčů, kteří skončí v bezvýchodné situaci (0–1). */
   failRate: number;
+  /** Spojitá obtížnost 0–1: 1 − průměrný podíl jednotek v uzavřených lahvích na konci náhodné hry. */
+  difficulty: number;
   /** Délka řešení nalezeného solverem (není nutně optimální). */
   solutionLength: number;
   /** Kolik kandidátů generátor zkusil. */
@@ -34,8 +36,8 @@ export interface LevelParams {
   capMax: number;
   hidden: number;
   partial: number;
-  failMin: number;
-  failMax: number;
+  /** Který kandidát se vybere podle obtížnosti: 0 = nejlehčí, 1 = nejtěžší. */
+  pick: number;
 }
 
 export interface LevelDef {

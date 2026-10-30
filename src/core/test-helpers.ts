@@ -36,9 +36,8 @@ export function makeLevel(caps: number[], bottles: string[], level = 1): LevelDe
       capMax: Math.max(...caps),
       hidden: hidden.length,
       partial: 0,
-      failMin: 0,
-      failMax: 1,
+      pick: 0.5,
     },
-    meta: { failRate: 0, solutionLength: 0, candidates: 1, ms: 0 },
+    meta: { failRate: 0, difficulty: 0, solutionLength: 0, candidates: 1, ms: 0 },
   };
 }

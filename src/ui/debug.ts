@@ -20,10 +20,17 @@ export function setupDebug(host: DebugHost): { onFrame(dt: number): void; refres
   (window as unknown as { __debug?: DebugHost }).__debug = host;
   el.innerHTML = `
     <div id="dbg-fps">FPS: –</div>
-    <div id="dbg-info"></div>
-    <div><input id="dbg-level" type="number" min="1" inputmode="numeric" /><button id="dbg-go">Skok</button></div>
-    <div><button id="dbg-hint">Nápověda</button><button id="dbg-auto">Dohrát</button></div>
+    <div id="dbg-body" hidden>
+      <div id="dbg-info"></div>
+      <div><input id="dbg-level" type="number" min="1" inputmode="numeric" /><button id="dbg-go">Skok</button></div>
+      <div><button id="dbg-hint">Nápověda</button><button id="dbg-auto">Dohrát</button></div>
+    </div>
   `;
+  // Panel je sbalený, aby nepřekrýval lahve; ťuknutí na řádek FPS ho rozbalí.
+  const body = el.querySelector<HTMLDivElement>('#dbg-body')!;
+  el.querySelector('#dbg-fps')!.addEventListener('click', () => {
+    body.hidden = !body.hidden;
+  });
   const fpsEl = el.querySelector<HTMLDivElement>('#dbg-fps')!;
   const infoEl = el.querySelector<HTMLDivElement>('#dbg-info')!;
   const input = el.querySelector<HTMLInputElement>('#dbg-level')!;

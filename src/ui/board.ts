@@ -3,7 +3,7 @@ import type { Move, Unit } from '../core/types.ts';
 import type { Sfx } from '../audio/sfx.ts';
 import { computeLayout, hitTest, type Layout, type Slot } from '../render/layout.ts';
 import { Particles } from '../render/particles.ts';
-import { Renderer, type LiquidLayer, type Pose } from '../render/renderer.ts';
+import { pourAngle, Renderer, type LiquidLayer, type Pose } from '../render/renderer.ts';
 
 export interface BoardCallbacks {
   /** Stav hry se změnil (ulož, aktualizuj tlačítka). */
@@ -46,10 +46,7 @@ function easeOutBounce(t: number): number {
   return n1 * (t -= 2.625 / d1) * t + 0.984375;
 }
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-const DEG = Math.PI / 180;
 
-/** Náklon podle toho, kolik tekutiny v lahvi zbývá (plná = méně, prázdná = víc). */
-const tiltFor = (fraction: number) => lerp(102 * DEG, 52 * DEG, clamp01(fraction));
 
 const SHAKE_MS = 320;
 const CORK_MS = 420;
@@ -498,14 +495,15 @@ export class Board {
       if (!fs || !ts) continue;
       const el = now - p.start;
       const home = { x: fs.x, y: fs.y, angle: 0 };
+      // Hrdlo zdroje nad hrdlem cíle (tělo lahve míří šikmo vzhůru od cíle).
       const pourPose = {
-        x: ts.x - p.dir * ts.w * 0.2,
-        y: ts.y - ts.w * 0.62,
+        x: ts.x - p.dir * ts.w * 0.12,
+        y: ts.y - ts.w * 0.5,
         angle: 0,
       };
-      const capFrom = fs.cap;
-      const a1 = p.dir * tiltFor(p.srcBefore.length / capFrom);
-      const a2 = p.dir * tiltFor(p.srcAfter.length / capFrom);
+      // Úhel tak, aby hladina právě dosahovala na hrdlo (fyzikálně věrohodné vytékání).
+      const a1 = p.dir * pourAngle(fs, p.srcBefore.length);
+      const a2 = p.dir * pourAngle(fs, p.srcAfter.length);
       let pose: Pose;
       let layers: LiquidLayer[];
       let streamQ = -1;
@@ -515,7 +513,8 @@ export class Board {
         layers = this.layersOf(p.srcBefore, now);
       } else if (el < p.tFly + p.tPour) {
         const q = clamp01((el - p.tFly) / p.tPour);
-        pose = { x: pourPose.x, y: pourPose.y, angle: lerp(a1, a2, easeInOut(q)) };
+        const remaining = p.srcBefore.length - p.count * easeInOut(q);
+        pose = { x: pourPose.x, y: pourPose.y, angle: p.dir * pourAngle(fs, remaining) };
         layers = this.layersOf(p.srcBefore, now);
         const last = layers[layers.length - 1];
         if (last) last.amount = Math.max(0, last.amount - p.count * easeInOut(q));

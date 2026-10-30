@@ -76,6 +76,48 @@ function levelForVolume(poly: Pt[], volume: number, minY: number, maxY: number):
   return (lo + hi) / 2;
 }
 
+/** Mnohoúhelník vnitřku lahve v souřadnicích s počátkem v hrdle, otočený o `angle`. */
+function innerPoly(g: BottleGeom, angle: number, ox = 0, oy = 0): Pt[] {
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  const iw = g.innerW;
+  const tw = (x: number, y: number): Pt => ({ x: ox + x * cos - y * sin, y: oy + x * sin + y * cos });
+  return [tw(-iw / 2, 0), tw(iw / 2, 0), tw(iw / 2, g.liquidBottom), tw(-iw / 2, g.liquidBottom)];
+}
+
+/**
+ * Úhel náklonu (kladný, ve směru hodinových ručiček), při kterém hladina daného množství
+ * tekutiny právě dosáhne na spodní okraj hrdla – tehdy začne tekutina vytékat.
+ */
+export function pourAngle(g: BottleGeom, units: number): number {
+  const maxA = (95 * Math.PI) / 180;
+  const minA = (30 * Math.PI) / 180;
+  if (units <= 0.01) return maxA;
+  const volume = units * g.u * g.innerW;
+  // Vytéká, když hladina (y) je nad (menší y) nebo na úrovni dolního rtu hrdla.
+  const pours = (a: number) => {
+    const poly = innerPoly(g, a);
+    let minY = Infinity;
+    let maxY = -Infinity;
+    for (const p of poly) {
+      minY = Math.min(minY, p.y);
+      maxY = Math.max(maxY, p.y);
+    }
+    const level = levelForVolume(poly, volume, minY, maxY);
+    const lipY = (g.innerW / 2) * Math.sin(a);
+    return level <= lipY;
+  };
+  if (pours(minA)) return minA;
+  let lo = minA;
+  let hi = maxA;
+  for (let i = 0; i < 18; i++) {
+    const mid = (lo + hi) / 2;
+    if (pours(mid)) hi = mid;
+    else lo = mid;
+  }
+  return hi;
+}
+
 export class Renderer {
   readonly canvas: HTMLCanvasElement;
   readonly ctx: CanvasRenderingContext2D;
@@ -279,10 +321,7 @@ export class Renderer {
   private drawLiquidTilted(g: BottleGeom, pose: Pose, layers: LiquidLayer[]): void {
     const ctx = this.ctx;
     const iw = g.innerW;
-    const cos = Math.cos(pose.angle);
-    const sin = Math.sin(pose.angle);
-    const toWorld = (x: number, y: number): Pt => ({ x: pose.x + x * cos - y * sin, y: pose.y + x * sin + y * cos });
-    const poly = [toWorld(-iw / 2, 0), toWorld(iw / 2, 0), toWorld(iw / 2, g.liquidBottom), toWorld(-iw / 2, g.liquidBottom)];
+    const poly = innerPoly(g, pose.angle, pose.x, pose.y);
     let minX = Infinity;
     let maxX = -Infinity;
     let minY = Infinity;

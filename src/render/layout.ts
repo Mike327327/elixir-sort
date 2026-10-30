@@ -120,7 +120,8 @@ export function computeLayout(caps: number[], width: number, height: number, opt
       k = lo;
       w = Math.min(target, height / heightFor(k));
     }
-    if (!best || w > best.w + 0.5) best = { w, k, rows };
+    // Víc řad jen tehdy, když lahve znatelně zvětší (méně řad vypadá kompaktněji).
+    if (!best || w > best.w * 1.08) best = { w, k, rows };
   }
   if (!best) best = { w: 24, k: kMin, rows: [order] };
 

@@ -29,7 +29,10 @@ self.addEventListener('fetch', (event) => {
   if (req.mode === 'navigate') {
     // Aplikace je jedna stránka: vždy z cache (offline), síť jen jako záloha.
     event.respondWith(
-      caches.match('./index.html', { ignoreSearch: true }).then((cached) => cached || caches.match('./') || fetch(req)),
+      caches
+        .match('./index.html', { ignoreSearch: true })
+        .then((cached) => cached || caches.match('./', { ignoreSearch: true }))
+        .then((cached) => cached || fetch(req)),
     );
     return;
   }

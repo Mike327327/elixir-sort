@@ -510,6 +510,38 @@ svg {
   font-weight: 800;
 }
 
+/* ------------------------------------------------------------ konfety */
+
+#confetti {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------ na šířku */
+
+/* Hra je jen na výšku. Safari mimo nainstalovanou PWA orientaci z manifestu nezamkne. */
+.rotate-hint {
+  display: none;
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .rotate-hint {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    display: grid;
+    place-items: center;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--ink);
+    background: linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+  }
+}
+
 /* ------------------------------------------------------------ debug */
 
 #debug {
@@ -530,6 +562,13 @@ svg {
 #debug input {
   width: 64px;
   font: inherit;
+}
+
+#dbg-solution {
+  max-height: 120px;
+  margin-top: 4px;
+  overflow: hidden;
+  word-spacing: 2px;
 }
 
 #debug button {

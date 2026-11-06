@@ -1,7 +1,8 @@
 import type { Game } from '../core/game.ts';
 import type { Move, Unit } from '../core/types.ts';
 import type { Sfx } from '../audio/sfx.ts';
-import { computeLayout, hitTest, type Layout, type Slot } from '../render/layout.ts';
+import type { ConfettiLayer } from '../render/confetti.ts';
+import { computeLayout, hitTest, pourPlacement, type Layout, type Slot } from '../render/layout.ts';
 import { Particles } from '../render/particles.ts';
 import { pourAngle, Renderer, type LiquidLayer, type Pose } from '../render/renderer.ts';
 
@@ -27,11 +28,21 @@ interface PourAnim {
   tPour: number;
   tBack: number;
   dir: 1 | -1;
+  /** Poloha hrdla při přelévání. */
+  x: number;
+  y: number;
+  /** Náklon na začátku a na konci přelévání (bez znaménka směru). */
+  angleStart: number;
+  angleEnd: number;
   closedTarget: boolean;
   revealed: number[];
-  won: boolean;
-  fast: boolean;
   pourEnded: boolean;
+}
+
+interface CorkAnim {
+  start: number;
+  color: number;
+  landed: boolean;
 }
 
 const easeOut = (t: number) => 1 - (1 - t) ** 3;
@@ -47,10 +58,18 @@ function easeOutBounce(t: number): number {
 }
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
+// Časování přelití podle zadání: asi 700 ms, víc tekutiny teče o něco déle. Zpět asi 300 ms.
+const FLY_MS = 200;
+const BACK_MS = 200;
+const pourMs = (count: number) => Math.min(380, 220 + count * 40);
+const UNDO_FLY_MS = 90;
+const UNDO_POUR_MS = 120;
 
 const SHAKE_MS = 320;
 const CORK_MS = 420;
-const REVEAL_MS = 320;
+/** Kdy zátka poprvé dosedne (první dopad v easeOutBounce). */
+const CORK_LAND = 1 / 2.75;
+const REVEAL_MS = 200;
 
 export class Board {
   readonly renderer: Renderer;
@@ -60,7 +79,7 @@ export class Board {
   private lift: number[] = [];
   private shakes = new Map<number, number>();
   private pours: PourAnim[] = [];
-  private corks = new Map<number, number>();
+  private corks = new Map<number, CorkAnim>();
   private reveals = new Map<number, number>();
   private particles = new Particles();
   private hint: Move | null = null;
@@ -74,11 +93,13 @@ export class Board {
 
   private readonly container: HTMLElement;
   private readonly sfx: Sfx;
+  private readonly confetti: ConfettiLayer;
   private readonly cb: BoardCallbacks;
 
-  constructor(container: HTMLElement, canvas: HTMLCanvasElement, sfx: Sfx, cb: BoardCallbacks) {
+  constructor(container: HTMLElement, canvas: HTMLCanvasElement, sfx: Sfx, confetti: ConfettiLayer, cb: BoardCallbacks) {
     this.container = container;
     this.sfx = sfx;
+    this.confetti = confetti;
     this.cb = cb;
     this.renderer = new Renderer(canvas);
     canvas.addEventListener('pointerdown', (e) => this.onPointer(e));
@@ -90,6 +111,7 @@ export class Board {
   setGame(game: Game): void {
     this.finishAll(false);
     window.clearTimeout(this.winTimer);
+    this.confetti.stop();
     this.game = game;
     this.selected = -1;
     this.lift = game.bottles.map(() => 0);
@@ -127,6 +149,15 @@ export class Board {
     return this.pours.length > 0;
   }
 
+  /** Hráč odešel z hrací plochy: rozehrané animace ani čekající panel výhry už nemají co ukazovat. */
+  leave(): void {
+    this.locked = true;
+    this.hint = null;
+    window.clearTimeout(this.winTimer);
+    this.confetti.stop();
+    this.finishAll(false);
+  }
+
   // ---------------------------------------------------------------- vstup
 
   private isLockedBottle(i: number): boolean {
@@ -152,8 +183,10 @@ export class Board {
       this.select(-1);
       return;
     }
+    // Lahve v běžící animaci jsou do jejího konce zamčené.
+    if (this.isLockedBottle(idx)) return;
     if (this.selected < 0) {
-      if (game.canSelect(idx) && !this.isLockedBottle(idx)) {
+      if (game.canSelect(idx)) {
         this.select(idx);
         this.sfx.select();
       } else {
@@ -165,7 +198,6 @@ export class Board {
       this.select(-1);
       return;
     }
-    if (this.isLockedBottle(idx)) return;
     if (game.pourAmount(this.selected, idx) > 0) {
       this.startPour(this.selected, idx);
       return;
@@ -194,75 +226,69 @@ export class Board {
 
   // ---------------------------------------------------------------- tahy
 
-  private startPour(from: number, to: number, fast = false): void {
+  private startPour(from: number, to: number): void {
     const game = this.game!;
     const res = game.pour(from, to);
     if (!res) return;
     this.selected = -1;
     this.stuckNotified = false;
-    const count = res.move.count;
-    const color = res.before.from[res.before.from.length - 1].c;
+    const anim = this.makeAnim(from, to, res.move.count, res.before.from, game.bottles[from], res.before.to);
+    anim.tFly = FLY_MS;
+    anim.tPour = pourMs(res.move.count);
+    anim.tBack = BACK_MS;
+    anim.closedTarget = res.closedTarget;
+    anim.revealed = res.revealed;
+    // Odkrytá jednotka ve zdrojové lahvi se rozlije, až když lahev stojí zpátky na místě.
+    const pourEnd = anim.start + anim.tFly + anim.tPour;
+    const inSource = new Set(anim.srcAfter.map((u) => u.id));
+    for (const id of res.revealed) this.reveals.set(id, inSource.has(id) ? pourEnd + anim.tBack : pourEnd);
+    this.pours.push(anim);
+    this.sfx.pour(anim.tPour);
+    this.cb.onChange();
+    this.requestRender();
+  }
+
+  private makeAnim(from: number, to: number, count: number, srcBefore: Unit[], srcAfter: Unit[], dstBefore: Unit[]): PourAnim {
     const fs = this.layout.slots[from];
     const ts = this.layout.slots[to];
-    const anim: PourAnim = {
+    // Úhel tak, aby hladina právě dosahovala na hrdlo (fyzikálně věrohodné vytékání).
+    const angleStart = pourAngle(fs, srcBefore.length);
+    const angleEnd = pourAngle(fs, srcAfter.length);
+    const place = pourPlacement(fs, ts, this.renderer.width, fs.h * Math.sin(Math.min(angleEnd, Math.PI / 2)));
+    return {
       from,
       to,
       count,
-      color,
-      srcBefore: res.before.from,
-      srcAfter: game.bottles[from].slice(),
-      dstBefore: res.before.to,
+      color: srcBefore[srcBefore.length - 1].c,
+      srcBefore,
+      srcAfter: srcAfter.slice(),
+      dstBefore,
       start: performance.now(),
-      tFly: fast ? 120 : 230,
-      tPour: fast ? 160 : Math.min(520, 260 + count * 60),
-      tBack: fast ? 120 : 230,
-      dir: ts.x >= fs.x ? 1 : -1,
-      closedTarget: res.closedTarget,
-      revealed: res.revealed,
-      won: res.won,
-      fast,
+      tFly: UNDO_FLY_MS,
+      tPour: UNDO_POUR_MS,
+      tBack: UNDO_FLY_MS,
+      dir: place.dir,
+      x: place.x,
+      y: place.y,
+      angleStart,
+      angleEnd,
+      closedTarget: false,
+      revealed: [],
       pourEnded: false,
     };
-    const revealAt = anim.start + anim.tFly + anim.tPour;
-    for (const id of res.revealed) this.reveals.set(id, revealAt);
-    this.pours.push(anim);
-    if (!fast) this.sfx.pour(anim.tPour);
-    this.cb.onChange();
-    this.requestRender();
   }
 
   /** Zpět s rychlou animací (přelití obráceně). */
   undo(): boolean {
     const game = this.game;
-    if (!game || !game.canUndo()) return false;
+    if (!game || !game.canUndo() || game.isWon()) return false;
     this.finishAll(true);
     const res = game.undo();
     if (!res) return false;
     // Animace: jednotky se vracejí z `to` do `from`.
     const { move, before } = res;
-    const fs = this.layout.slots[move.to];
-    const ts = this.layout.slots[move.from];
-    const anim: PourAnim = {
-      from: move.to,
-      to: move.from,
-      count: move.count,
-      color: before.to[before.to.length - 1].c,
-      srcBefore: before.to,
-      srcAfter: game.bottles[move.to].slice(),
-      dstBefore: before.from,
-      start: performance.now(),
-      tFly: 110,
-      tPour: 150,
-      tBack: 110,
-      dir: ts.x >= fs.x ? 1 : -1,
-      closedTarget: false,
-      revealed: [],
-      won: false,
-      fast: true,
-      pourEnded: false,
-    };
     this.corks.delete(move.to);
-    this.pours.push(anim);
+    this.pours.push(this.makeAnim(move.to, move.from, move.count, before.to, game.bottles[move.to], before.from));
     this.selected = -1;
     this.stuckNotified = false;
     this.cb.onChange();
@@ -272,7 +298,7 @@ export class Board {
 
   addBottle(): boolean {
     const game = this.game;
-    if (!game || !game.canAddBottle()) return false;
+    if (!game || !game.canAddBottle() || game.isWon()) return false;
     this.finishAll(true);
     game.addBottle();
     this.lift.push(0);
@@ -284,7 +310,7 @@ export class Board {
 
   restart(): void {
     const game = this.game;
-    if (!game) return;
+    if (!game || game.isWon()) return;
     this.finishAll(false);
     game.restart();
     this.selected = -1;
@@ -309,27 +335,21 @@ export class Board {
 
   private onPourEnd(p: PourAnim, now: number): void {
     p.pourEnded = true;
-    const s = this.layout.slots[p.to];
-    if (p.closedTarget && s) {
-      this.corks.set(p.to, now);
-      this.particles.sparkle(s.x, s.y + s.h * 0.3, p.color);
-      this.sfx.pop();
-    }
-    if (p.revealed.length > 0) this.sfx.reveal();
+    if (p.closedTarget) this.corks.set(p.to, { start: now, color: p.color, landed: false });
   }
 
-  private onPourDone(p: PourAnim): void {
-    if (p.won && this.pours.length === 0) this.celebrate();
+  /** Výhra se vyhlásí, až doběhnou všechna přelití – bez ohledu na to, které bylo vítězné. */
+  private checkWin(): void {
+    const game = this.game;
+    if (game && !this.locked && this.pours.length === 0 && game.isWon()) this.celebrate();
   }
 
   private celebrate(): void {
     const game = this.game;
     if (!game) return;
     this.locked = true;
-    const colors = Array.from(new Set(game.bottles.flat().map((u) => u.c)));
-    this.particles.confetti(this.renderer.width, colors);
+    this.confetti.start(Array.from(new Set(game.bottles.flat().map((u) => u.c))));
     this.sfx.win();
-    this.requestRender();
     this.winTimer = window.setTimeout(() => this.cb.onWin(), 900);
   }
 
@@ -380,8 +400,16 @@ export class Board {
       if (now - start > SHAKE_MS) this.shakes.delete(i);
       else animating = true;
     }
-    for (const [i, start] of this.corks) {
-      if (now - start > CORK_MS) this.corks.delete(i);
+    for (const [i, cork] of this.corks) {
+      const t = (now - cork.start) / CORK_MS;
+      if (!cork.landed && t >= CORK_LAND) {
+        // Zátka dosedla: cvaknutí a jiskry v barvě lahve.
+        cork.landed = true;
+        const s = this.layout.slots[i];
+        if (s) this.particles.sparkle(s.x, s.y + s.w * 0.1, cork.color);
+        this.sfx.pop();
+      }
+      if (t > 1) this.corks.delete(i);
       else animating = true;
     }
     for (const [id, start] of this.reveals) {
@@ -393,13 +421,13 @@ export class Board {
       const done: PourAnim[] = [];
       for (const p of this.pours) {
         const el = now - p.start;
-        if (!p.pourEnded && el >= p.tFly + p.tPour && !p.fast) this.onPourEnd(p, now);
-        else if (!p.pourEnded && el >= p.tFly + p.tPour) p.pourEnded = true;
+        if (!p.pourEnded && el >= p.tFly + p.tPour) this.onPourEnd(p, now);
         if (el >= p.tFly + p.tPour + p.tBack) done.push(p);
       }
       if (done.length) {
         this.pours = this.pours.filter((p) => !done.includes(p));
-        for (const p of done) this.onPourDone(p);
+        if (done.some((p) => p.revealed.length > 0)) this.sfx.reveal();
+        this.checkWin();
       }
     }
     this.particles.update(dt);
@@ -475,15 +503,16 @@ export class Board {
         layers = this.layersOf(units, now);
       }
       const closed = game.isClosed(i) && !(tp && !tp.pourEnded);
-      const corkStart = this.corks.get(i);
-      const corkProgress = corkStart === undefined ? 1 : easeOutBounce(clamp01((now - corkStart) / CORK_MS));
-      r.drawBottle({
+      const cork = this.corks.get(i);
+      const corkT = cork ? clamp01((now - cork.start) / CORK_MS) : 1;
+      r.drawBottleCached(i, {
         geom,
         pose: this.homePose(i, now),
         layers,
         cork: closed && units.length > 0 ? units[0].c : null,
-        corkProgress,
+        corkProgress: cork ? easeOutBounce(corkT) : 1,
         highlight: this.lift[i] ?? 0,
+        flash: corkT >= CORK_LAND && cork ? 0.65 * (1 - (corkT - CORK_LAND) / (1 - CORK_LAND)) ** 2 : 0,
         symbols: this.symbols,
       });
     }
@@ -494,37 +523,29 @@ export class Board {
       const ts = this.layout.slots[p.to];
       if (!fs || !ts) continue;
       const el = now - p.start;
-      const home = { x: fs.x, y: fs.y, angle: 0 };
-      // Hrdlo zdroje nad hrdlem cíle (tělo lahve míří šikmo vzhůru od cíle).
-      const pourPose = {
-        x: ts.x - p.dir * ts.w * 0.12,
-        y: ts.y - ts.w * 0.5,
-        angle: 0,
-      };
-      // Úhel tak, aby hladina právě dosahovala na hrdlo (fyzikálně věrohodné vytékání).
-      const a1 = p.dir * pourAngle(fs, p.srcBefore.length);
-      const a2 = p.dir * pourAngle(fs, p.srcAfter.length);
+      const a1 = p.dir * p.angleStart;
+      const a2 = p.dir * p.angleEnd;
       let pose: Pose;
       let layers: LiquidLayer[];
       let streamQ = -1;
       if (el < p.tFly) {
         const t = easeOut(clamp01(el / p.tFly));
-        pose = { x: lerp(home.x, pourPose.x, t), y: lerp(home.y, pourPose.y, t), angle: lerp(0, a1, t) };
+        pose = { x: lerp(fs.x, p.x, t), y: lerp(fs.y, p.y, t), angle: lerp(0, a1, t) };
         layers = this.layersOf(p.srcBefore, now);
       } else if (el < p.tFly + p.tPour) {
         const q = clamp01((el - p.tFly) / p.tPour);
         const remaining = p.srcBefore.length - p.count * easeInOut(q);
-        pose = { x: pourPose.x, y: pourPose.y, angle: p.dir * pourAngle(fs, remaining) };
+        pose = { x: p.x, y: p.y, angle: p.dir * pourAngle(fs, remaining) };
         layers = this.layersOf(p.srcBefore, now);
         const last = layers[layers.length - 1];
         if (last) last.amount = Math.max(0, last.amount - p.count * easeInOut(q));
         streamQ = q;
       } else {
         const t = easeInOut(clamp01((el - p.tFly - p.tPour) / p.tBack));
-        pose = { x: lerp(pourPose.x, home.x, t), y: lerp(pourPose.y, home.y, t), angle: lerp(a2, 0, t) };
+        pose = { x: lerp(p.x, fs.x, t), y: lerp(p.y, fs.y, t), angle: lerp(a2, 0, t) };
         layers = this.layersOf(p.srcAfter, now);
       }
-      r.drawBottle({ geom: fs, pose, layers, cork: null, corkProgress: 1, highlight: 0, symbols: false });
+      r.drawBottle({ geom: fs, pose, layers, cork: null, corkProgress: 1, highlight: 0, flash: 0, symbols: false });
 
       if (streamQ >= 0) {
         const lipX = p.dir * fs.innerW * 0.5;

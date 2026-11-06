@@ -75,7 +75,7 @@ export interface LayoutOptions {
 
 export function computeLayout(caps: number[], width: number, height: number, opts: LayoutOptions = {}): Layout {
   const maxW = opts.maxW ?? 76;
-  const kMin = opts.kMin ?? 0.42;
+  const kMin = opts.kMin ?? 0.4;
   const kMax = opts.kMax ?? 0.72;
   const gapRatio = opts.gapRatio ?? 0.32;
   const rowGapRatio = opts.rowGapRatio ?? 0.32;
@@ -151,6 +151,31 @@ export function computeLayout(caps: number[], width: number, height: number, opt
     y += rowH + rowGap;
   });
   return { slots, w, u, rows: best.rows.length };
+}
+
+export interface PourPlacement {
+  /** 1 = náklon po směru hodinových ručiček (hrdlo vpravo, tělo lahve míří doleva), -1 = naopak. */
+  dir: 1 | -1;
+  /** Poloha hrdla zdrojové lahve při přelévání. */
+  x: number;
+  y: number;
+}
+
+/**
+ * Kam se zdrojová lahev postaví nad cílovou. Přirozeně se naklání od strany, ze které přilétá.
+ * U kraje plochy se otočí na druhou stranu, jinak by tělo lahve (dosah `reach` od hrdla)
+ * skončilo mimo obrazovku. Límec se otáčí kolem hrdla, takže ani nahoře nesmí přesáhnout plátno.
+ */
+export function pourPlacement(src: Slot, dst: Slot, boardW: number, reach: number): PourPlacement {
+  const natural: 1 | -1 = dst.x >= src.x ? 1 : -1;
+  const other: 1 | -1 = natural === 1 ? -1 : 1;
+  const roomOn = (dir: 1 | -1) => (dir === 1 ? dst.x : boardW - dst.x);
+  const dir = roomOn(natural) < reach && roomOn(other) > roomOn(natural) ? other : natural;
+  return {
+    dir,
+    x: dst.x - dir * dst.w * 0.12,
+    y: Math.max(dst.y - dst.w * 0.5, src.w * 0.6),
+  };
 }
 
 /** Index lahve pod bodem (s okrajem pro snadné trefení), nebo -1. */

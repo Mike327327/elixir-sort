@@ -3,6 +3,7 @@ import { HIDDEN_INTRO_LEVEL, TUTORIAL_LEVELS } from './core/config.ts';
 import { Game } from './core/game.ts';
 import type { LevelDef, Move } from './core/types.ts';
 import { applyPendingUpdate, registerServiceWorker } from './pwa.ts';
+import { ConfettiLayer } from './render/confetti.ts';
 import { toSBoard } from './solver/board.ts';
 import { Board } from './ui/board.ts';
 import { setupDebug } from './ui/debug.ts';
@@ -26,6 +27,8 @@ class App {
   private readonly levels = new LevelService();
   private readonly board: Board;
   private game: Game | null = null;
+  /** Hra, jejíž výhra už je započítaná (výhra se ukládá hned, panel přijde až po oslavě). */
+  private recordedWin: Game | null = null;
   private loadToken = 0;
   private hintToken = 0;
   private resetArmed = 0;
@@ -34,7 +37,7 @@ class App {
   constructor() {
     this.fillStrings();
     this.sfx.enabled = this.data.settings.sound;
-    this.board = new Board($('board'), $<HTMLCanvasElement>('canvas'), this.sfx, {
+    this.board = new Board($('board'), $<HTMLCanvasElement>('canvas'), this.sfx, new ConfettiLayer($<HTMLCanvasElement>('confetti')), {
       onChange: () => this.onChange(),
       onWin: () => this.onWin(),
       onStuck: () => this.onStuck(),
@@ -125,6 +128,11 @@ class App {
     });
     on('btn-reset', () => this.resetProgress());
 
+    // Na iOS audio odemkne až konec dotyku (pointerdown nestačí), i po návratu z pozadí.
+    for (const type of ['pointerup', 'touchend'] as const) {
+      document.addEventListener(type, () => this.sfx.unlock(), { capture: true, passive: true });
+    }
+
     const sound = $<HTMLInputElement>('opt-sound');
     sound.checked = this.data.settings.sound;
     sound.addEventListener('change', () => {
@@ -184,14 +192,16 @@ class App {
 
   private updateButtons(): void {
     const g = this.game;
-    $<HTMLButtonElement>('btn-undo').disabled = !g || !g.canUndo();
-    $<HTMLButtonElement>('btn-add').disabled = !g || !g.canAddBottle();
-    $<HTMLButtonElement>('btn-restart').disabled = !g;
+    const playing = !!g && !g.isWon();
+    $<HTMLButtonElement>('btn-undo').disabled = !playing || !g.canUndo();
+    $<HTMLButtonElement>('btn-add').disabled = !playing || !g.canAddBottle();
+    $<HTMLButtonElement>('btn-restart').disabled = !playing;
   }
 
   private goHome(): void {
     this.persist();
-    this.board.setHint(null);
+    this.hintToken++;
+    this.board.leave();
     this.closePanels();
     this.showScreen('home');
     this.updateHome();
@@ -215,8 +225,10 @@ class App {
     const settings = this.data.settings;
     this.data = defaultData();
     this.data.settings = settings;
-    this.persist();
+    this.hintToken++;
+    this.board.leave();
     this.game = null;
+    this.persist();
     btn.textContent = S.resetDone;
     this.resetArmed = 0;
     this.closePanels();
@@ -320,6 +332,7 @@ class App {
   // ---------------------------------------------------------------- události z hrací plochy
 
   private onChange(): void {
+    this.recordWin();
     this.persist();
     this.updateButtons();
     if (this.game && this.game.def.level <= TUTORIAL_LEVELS) {
@@ -328,19 +341,25 @@ class App {
     }
   }
 
-  private onWin(): void {
+  /** Započítá výhru hned po vítězném tahu, ať ji neztratí zavření aplikace během oslavy. */
+  private recordWin(): void {
     const g = this.game;
-    if (!g) return;
-    this.board.setHint(null);
+    if (!g || !g.isWon() || this.recordedWin === g) return;
+    this.recordedWin = g;
     this.data.stats.completed++;
     this.data.stats.totalMoves += g.moves;
     this.data.level = g.def.level + 1;
     this.data.current = null;
-    saveData(this.data);
+    this.levels.prefetch(this.data.level);
+  }
+
+  private onWin(): void {
+    const g = this.game;
+    if (!g) return;
+    this.board.setHint(null);
     $('win-title').textContent = S.winTitle(g.def.level);
     $('win-moves').textContent = S.winMoves(g.moves);
     this.openPanel('panel-win');
-    this.levels.prefetch(this.data.level);
   }
 
   private onStuck(): void {

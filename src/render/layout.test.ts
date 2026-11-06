@@ -1,6 +1,6 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { computeLayout, hitTest } from './layout.ts';
+import { bottleGeom, computeLayout, hitTest, pourPlacement, type Slot } from './layout.ts';
 import { generateLevel } from '../solver/generator.ts';
 
 /** Hrací plocha po odečtení lišt a safe areas (CSS px, na výšku). */
@@ -34,11 +34,13 @@ describe('rozložení', () => {
     assert.equal(l.rows, 1);
   });
 
-  test('24 lahví s kapacitami až 8 + přidaná lahev se vejde na iPhone SE se šířkou ≥ 38,5 px', () => {
-    const caps = [8, 7, 7, 6, 6, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3, 2, 2, 4, 4];
-    const se = check(caps, IPHONE_SE, 38.5);
+  test('24 lahví s kapacitami až 8 má na iPhonu SE i 14 šířku aspoň 40 pt', () => {
+    const caps = [8, 7, 7, 6, 6, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3, 2, 2, 4];
+    const se = check(caps, IPHONE_SE, 40);
     const i14 = check(caps, IPHONE_14, 40);
-    console.log(`    šířka lahve: SE ${se.w} px, iPhone 14 ${i14.w} px`);
+    // Přidaná lahev (+1) je navíc nad rámec zadání, smí být o trochu užší.
+    const seAdded = check(caps.concat([4]), IPHONE_SE, 38.5);
+    console.log(`    šířka lahve: SE ${se.w} px (s přidanou ${seAdded.w} px), iPhone 14 ${i14.w} px`);
   });
 
   test('vygenerované levely 1–300 se vejdou na iPhone SE', () => {
@@ -57,5 +59,38 @@ describe('rozložení', () => {
     assert.equal(hitTest(l.slots, s.x, s.y + s.h / 2), 1);
     assert.equal(hitTest(l.slots, s.x + s.w / 2 + 5, s.y + s.h / 2), 1);
     assert.equal(hitTest(l.slots, 2, 2), -1);
+  });
+});
+
+describe('umístění přelití', () => {
+  const BOARD_W = 390;
+  const slot = (x: number, y = 100, cap = 8): Slot => ({ ...bottleGeom(48, 20, cap), x, y });
+  const reach = slot(0).h;
+
+  test('lahev se naklání od strany, ze které přilétá', () => {
+    assert.equal(pourPlacement(slot(100), slot(200), BOARD_W, 50).dir, 1);
+    assert.equal(pourPlacement(slot(300), slot(200), BOARD_W, 50).dir, -1);
+  });
+
+  test('u levého i pravého kraje míří tělo lahve dovnitř plochy', () => {
+    const left = slot(36);
+    const right = slot(BOARD_W - 36);
+    // Zdroj je ve stejném sloupci, přirozený směr by vedl tělo lahve doleva mimo obrazovku.
+    assert.equal(pourPlacement(slot(36, 400), left, BOARD_W, reach).dir, -1);
+    // Zdroj je vpravo od cíle u pravého kraje, přirozený směr by vedl tělo doprava mimo obrazovku.
+    assert.equal(pourPlacement(slot(BOARD_W - 10, 400), right, BOARD_W, reach).dir, 1);
+  });
+
+  test('když se lahev nevejde na žádnou stranu, vybere se ta s větším místem', () => {
+    assert.equal(pourPlacement(slot(150), slot(150, 100), 300, 1000).dir, 1);
+    assert.equal(pourPlacement(slot(100, 400), slot(100), 300, 1000).dir, -1);
+  });
+
+  test('límec se u horní řady nedostane nad plátno', () => {
+    const src = slot(100);
+    const { y } = pourPlacement(src, slot(200, 4), BOARD_W, 50);
+    assert.ok(y - src.w * 0.57 >= 0, `y = ${y}`);
+    // Dole je místa dost: hrdlo zůstává nad cílovou lahví.
+    assert.equal(pourPlacement(src, slot(200, 300), BOARD_W, 50).y, 300 - 24);
   });
 });

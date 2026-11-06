@@ -23,7 +23,8 @@ export function setupDebug(host: DebugHost): { onFrame(dt: number): void; refres
     <div id="dbg-body" hidden>
       <div id="dbg-info"></div>
       <div><input id="dbg-level" type="number" min="1" inputmode="numeric" /><button id="dbg-go">Skok</button></div>
-      <div><button id="dbg-hint">Nápověda</button><button id="dbg-auto">Dohrát</button></div>
+      <div><button id="dbg-hint">Řešení</button><button id="dbg-auto">Dohrát</button></div>
+      <div id="dbg-solution"></div>
     </div>
   `;
   // Panel je sbalený, aby nepřekrýval lahve; ťuknutí na řádek FPS ho rozbalí.
@@ -34,6 +35,7 @@ export function setupDebug(host: DebugHost): { onFrame(dt: number): void; refres
   const fpsEl = el.querySelector<HTMLDivElement>('#dbg-fps')!;
   const infoEl = el.querySelector<HTMLDivElement>('#dbg-info')!;
   const input = el.querySelector<HTMLInputElement>('#dbg-level')!;
+  const solutionEl = el.querySelector<HTMLDivElement>('#dbg-solution')!;
 
   let frames = 0;
   let acc = 0;
@@ -52,6 +54,7 @@ export function setupDebug(host: DebugHost): { onFrame(dt: number): void; refres
 
   const refresh = () => {
     const g = host.getGame();
+    solutionEl.textContent = '';
     if (!g) {
       infoEl.textContent = '';
       return;
@@ -71,7 +74,10 @@ export function setupDebug(host: DebugHost): { onFrame(dt: number): void; refres
   el.querySelector('#dbg-hint')!.addEventListener('click', async () => {
     const moves = await host.solveCurrent();
     host.board.setHint(moves && moves.length ? moves[0] : null);
-    if (!moves) infoEl.textContent = 'Solver nenašel řešení (zkus Zpět).';
+    // Lahve jsou číslované od 1 v pořadí, v jakém jsou uložené v levelu.
+    solutionEl.textContent = moves
+      ? `${moves.length} tahů: ${moves.map((m) => `${m.from + 1}→${m.to + 1}`).join(' ')}`
+      : 'Solver nenašel řešení (zkus Zpět).';
   });
   el.querySelector('#dbg-auto')!.addEventListener('click', async () => {
     const moves = await host.solveCurrent();

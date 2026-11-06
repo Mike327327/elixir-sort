@@ -42,13 +42,13 @@ export class Particles {
     }
   }
 
-  confetti(width: number, colors: number[], count = 110): void {
+  confetti(width: number, height: number, colors: number[], count = 110): void {
     for (let i = 0; i < count; i++) {
       this.items.push({
         x: Math.random() * width,
-        y: -20 - Math.random() * 200,
+        y: -20 - Math.random() * height * 0.3,
         vx: (Math.random() - 0.5) * 80,
-        vy: 120 + Math.random() * 160,
+        vy: height * (0.25 + Math.random() * 0.25),
         life: 0,
         maxLife: 2.2 + Math.random() * 0.8,
         size: 5 + Math.random() * 5,

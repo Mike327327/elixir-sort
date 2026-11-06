@@ -32,4 +32,5 @@ export const S = {
   tipOk: 'Rozumím',
   installHint: 'Tip: v Safari ťukni na Sdílet → Přidat na plochu. Hra pak poběží jako aplikace i offline.',
   completed: (n: number) => `Splněno levelů: ${n}`,
+  rotate: 'Otoč telefon na výšku',
 } as const;

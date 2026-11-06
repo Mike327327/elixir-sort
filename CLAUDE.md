@@ -27,14 +27,14 @@ Offline PWA hra water sort (klon mechanik hry Magic Sort) pro iPhone 2022+. Vani
 - `solver/generator.ts` – zpětná konstrukce: z vyřešeného stavu náhodné obrácené tahy (s návratem při zaseknutí), hodnocení promíchanosti, výběr kandidáta podle obtížnosti na kvantilu `params.pick`. Vrací i řešení (test ho přehrává v `Game`).
 - `solver/solver.ts` – best-first solver (`solve`) + `measureDifficulty` (náhodní hladoví hráči).
 - `worker/` – generování a solver ve Web Workeru; `LevelService` cachuje a předgenerovává další level, při selhání workeru generuje na hlavním vlákně.
-- `render/layout.ts` – rozložení podle kapacit (řady seřazené podle výšky), `hitTest`. `render/renderer.ts` – kreslení lahve (sklo, tekutina vzpřímeně i nakloněná s vodorovnou hladinou), proud, ruka; `pourAngle` počítá náklon z objemu.
-- `ui/board.ts` – řadič hrací plochy: výběr, animace přelití (fly/pour/back), Zpět, zátky, odkrývání, částice, nápověda; rAF smyčka běží jen při animaci. Logický stav se mění okamžitě, animace ho dohání; lahve v animaci jsou zamčené.
-- `main.ts` – obrazovky, panely, ukládání, tutoriál, tipy. `pwa.ts` – registrace SW (jen PROD), aktualizace jen na úvodní obrazovce.
+- `render/layout.ts` – rozložení podle kapacit (řady seřazené podle výšky), `hitTest`. `render/renderer.ts` – kreslení lahve (sklo, tekutina vzpřímeně i nakloněná s vodorovnou hladinou), proud, ruka; `pourAngle` počítá náklon z objemu. Lahve v klidu se kopírují z per-slot spritu (`drawBottleCached`, klíč `spriteKey` podle obsahu), v animaci se kreslí živě. `render/confetti.ts` – konfety na vlastním plátně nad panely.
+- `ui/board.ts` – řadič hrací plochy: výběr, animace přelití (fly/pour/back), Zpět, zátky, odkrývání, částice, nápověda; rAF smyčka běží jen při animaci. Logický stav se mění okamžitě, animace ho dohání; lahve v animaci jsou zamčené. Výhra se vyhlásí, až doběhnou všechna přelití (`checkWin`), pomocníci jsou po vítězném tahu zablokovaní.
+- `main.ts` – obrazovky, panely, ukládání, tutoriál, tipy; výhra se ukládá hned po vítězném tahu (`recordWin`), panel přijde až po oslavě. `pwa.ts` – registrace SW (jen PROD), aktualizace jen na úvodní obrazovce, reload jen po vyžádané aktualizaci (ne po `clients.claim` při první instalaci).
 - `vite.config.ts` – plugin `elixir-sw` vyrobí `sw.js` ze `src/sw-template.js` se seznamem všech souborů buildu.
 
 ## Co zbývá
 
-1. Ověřit `npm install` + `npm run build` (Vite v původním prostředí neběželo – plugin SW a worker nejsou ověřené buildem).
-2. Test na iPhonu (viz checklist v README) a případné doladění výkonu (offscreen cache skla).
-3. Ladění obtížnosti v `core/config.ts` podle hraní.
-4. Nice-to-have: vysoké lahve po stranách přes víc řad (jako originál), lint.
+1. Test na iPhonu (checklist v README): FPS, zvuky, safe areas, instalace, offline. Dosud běželo jen v Chromiu, ne v Safari.
+2. Ladění obtížnosti v `core/config.ts` podle hraní.
+3. Rozhodnout o lintu: ESLint je v rozporu s pravidlem o dev závislostech výše.
+4. Volitelné: vysoké lahve po stranách přes víc řad.

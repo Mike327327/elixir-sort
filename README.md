@@ -14,7 +14,7 @@ Potřebuješ **Node 22.18+** (testy běží přímo v Node přes vestavěné ods
 
 ```bash
 npm install
-npm test          # 37 testů, ~30 s (ověří i řešitelnost levelů 1–300)
+npm test          # 44 testů, ~20 s (ověří i řešitelnost levelů 1–300)
 npm run dev       # vývojový server, vypíše i adresu v lokální síti
 ```
 
@@ -30,27 +30,32 @@ Na iPhonu ve stejné Wi‑Fi otevři adresu `Network:`, kterou vypíše `npm run
 | `npm run levels -- 1 300` | tabulka levelů: parametry, obtížnost, čas generování |
 | `npm run icons` | znovu vygeneruje PNG ikony (Python + Playwright) |
 
-Debug režim: přidej do adresy `?debug`. Vpravo nahoře se objeví FPS, po ťuknutí na něj se rozbalí skok na level, nápověda a automatické dohrání levelu.
+Debug režim: přidej do adresy `?debug`. Vpravo nahoře se objeví FPS, po ťuknutí na něj se rozbalí skok na level, výpis řešení s nápovědou a automatické dohrání levelu.
 
 ## Stav
 
-Hotové a ověřené (testy + běh v Chromiu v rozlišení iPhonu 14 a SE):
+Hotové a ověřené testy a během produkčního buildu v Chromiu v rozlišení iPhonu 14, 14 Pro a SE:
 
 - Pravidla, Zpět, +1 lahev, Restart, uzavírání lahví, výhra, bezvýchodná situace
 - Lahve různé výšky (2–8), barva přes více lahví, skryté barvy od levelu 31
-- Nekonečný deterministický generátor; levely 1–300 ověřeně řešitelné přes engine hry; generování 50–150 ms na PC
-- Rozložení: 25 lahví (24 + přidaná) se vejde i na iPhone SE (šířka lahve 39 px, iPhone 14 40,5 px)
-- Animace: zvednutí, let nad cílovou lahev, fyzikální náklon s vodorovnou hladinou, proud, zátka s jiskrami, odkrývání otazníků, zatřesení, konfety
+- Nekonečný deterministický generátor; levely 1–300 ověřeně řešitelné přes engine hry; generování typicky 40–70 ms na PC (maximum 90 ms, jednou při zátěži 279 ms) ve Web Workeru
+- Rozložení: 24 lahví v nejhorším případě 40,5 pt na iPhonu SE a 47,5 pt na iPhonu 14, stránka se neposouvá
+- Animace: zvednutí, let nad cílovou lahev, fyzikální náklon s vodorovnou hladinou, proud, zátka se zábleskem a jiskrami, rozlití barvy při odkrytí, zatřesení, konfety přes celou obrazovku
+- Lahve v klidu se kopírují z předkresleného plátna: při 24 lahvích a 3 současných přelitích kleslo vykreslení snímku v softwarovém Chromiu z 13–18 ms na 8,5–11 ms a snímků nad 20 ms z 6–88 na 0–9 za 8 s
 - Zvuky přes Web Audio, tutoriál s rukou (levely 1–3), tip ke skrytým barvám, banner těžkých levelů
 - Ukládání rozehrané hry včetně historie tahů, nastavení, statistik
-- Manifest, ikony, service worker s precache, iOS meta tagy a CSS
-- Dockerfile + nginx + příklad pro k3s
+- Offline: po prvním načtení jde hra spustit, vygenerovat nový level i dohrát bez sítě; první vykreslení z cache 82 ms na PC
+- Aktualizace: nová verze uprostřed levelu čeká a přepne se až na úvodní obrazovce
+- Build 31 kB gzip bez ikon (limit 150 kB)
+- Dockerfile + nginx: image se sestaví včetně testů a servíruje správné MIME typy a cache hlavičky; příklad pro k3s (`deploy/k8s.yaml`) nasazený není
 
-**Co jsem nemohl ověřit** (v mém prostředí nebyl přístup do npm registru, takže Vite tu nikdy neběželo):
+**Co jde ověřit jen na skutečném iPhonu** (vše výše běželo v Chromiu, ne v Safari):
 
-1. `npm install` a `npm run build` – konfigurace Vite (`vite.config.ts`, plugin pro service worker) je napsaná, ale nespuštěná. Pokud build spadne, je chyba nejspíš tam.
-2. Vše na skutečném iPhonu: 60 fps, zvuky, safe areas, instalace na plochu, offline, aktualizace na novou verzi.
-3. Pocitová obtížnost – křivka je nastavená podle měření, ale potřebuje dohrát pár desítek levelů.
+1. 60 fps na iPhonu 14 a generování pod 500 ms. Měření na PC dává jen porovnání, ne absolutní hodnoty.
+2. Zvuky: odemknutí prvním dotykem a obnovení po návratu z pozadí.
+3. Skutečné safe areas. V Chromiu jsem jen přepsal CSS proměnné na hodnoty notche a Dynamic Islandu, `env()` z iOS jsem neměl.
+4. Instalace na plochu, spuštění z plochy v režimu letadlo, mazání dat systémem.
+5. Pocitová obtížnost – křivka je nastavená podle měření, ale potřebuje dohrát pár desítek levelů.
 
 ## Testování na iPhonu
 
@@ -76,7 +81,7 @@ src/
   core/      pravidla (rules.ts), stav hry + Zpět/Restart (game.ts), křivka obtížnosti (config.ts), PRNG
   solver/    kompaktní reprezentace (board.ts), generátor levelů, solver + měření obtížnosti
   worker/    Web Worker a klient s cache a předgenerováním dalšího levelu
-  render/    rozložení lahví, Canvas renderer, paleta, částice
+  render/    rozložení lahví, Canvas renderer, paleta, částice, konfety
   ui/        řadič hrací plochy a animací (board.ts), ukládání, texty, debug panel
   audio/     syntetické zvuky
   main.ts    obrazovky, panely, tok aplikace
@@ -102,12 +107,13 @@ Vše je v [src/core/config.ts](src/core/config.ts):
 - **Testy:** `node:test` místo Vitestu – bez závislostí, běží rovnou v Node 22.
 - **PWA:** vlastní service worker a malý plugin ve `vite.config.ts` místo `vite-plugin-pwa`. Precachuje všechny soubory buildu, aktualizace čeká na úvodní obrazovku.
 - **Náklon:** počítá se z objemu tekutiny tak, aby hladina právě dosahovala na hrdlo, takže je v rozsahu ~30–95° místo pevných 60–85°.
+- **Přelití:** 660–780 ms podle množství tekutiny místo pevných 700 ms.
+- **Generování při selhání workeru:** když Web Worker nejde spustit, level se vygeneruje na hlavním vlákně. V běžném provozu se to neděje, je to jen pojistka, aby hra nezůstala bez levelu.
 - **Prázdné lahve:** všechna pásma mají 2 náhradní lahve, jedna z nich bývá na začátku částečně naplněná (jako na snímku originálu).
-- **iPhone SE:** v nejhorším případě (25 lahví, kapacity až 8) má lahev 39 px místo 40 (iPhone 14: 40,5 px).
-- **Nedělal jsem:** předkreslení skla do offscreen canvasu (kreslení je levné, dodělat jen pokud FPS na iPhonu nestačí), vysoké lahve po stranách přes víc řad (nice-to-have), lint.
+- **+1 lahev na iPhonu SE:** s 25. přidanou lahví a kapacitami až 8 má lahev v nejhorším případě 39 pt. Zadání požaduje 40 pt při 24 lahvích, to platí.
+- **Předkreslení:** lahve v klidu jsou předkreslené celé včetně tekutiny. Lahve v animaci (nakloněné, plnící se, se zátkou ve vzduchu) se kreslí živě.
+- **Nedělal jsem:** vysoké lahve po stranách přes víc řad (volitelné v zadání), lint (ESLint by porušil pravidlo o dev závislostech v CLAUDE.md; `tsc` se `strict` a `noUnused*` kontroluje část téhož).
 
 ## Pokračování s Claude Code
 
-Otevři složku ve VS Code a spusť Claude Code. [CLAUDE.md](CLAUDE.md) mu dá kontext. Rozumný první úkol:
-
-> Spusť npm install, npm test a npm run build. Oprav případné chyby v buildu (hlavně vite.config.ts a worker). Pak spusť npm run preview a ověř, že dist/sw.js obsahuje seznam souborů.
+Otevři složku ve VS Code a spusť Claude Code. [CLAUDE.md](CLAUDE.md) mu dá kontext. Další krok je projít [kontrolu na iPhonu](#testování-na-iphonu) a nahlásit, co nesedí (FPS, zvuky, safe areas, obtížnost).

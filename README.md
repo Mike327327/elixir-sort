@@ -2,6 +2,8 @@
 
 Offline PWA hra na třídění barev (water sort) podle mobilní hry Magic Sort. Mechaniky jsou převzaté, grafika, název i texty jsou vlastní. Žádné reklamy, mince ani backend.
 
+**Hraj na https://mike327327.github.io/elixir-sort/**
+
 | Úvod | Přelévání | Level 150 | iPhone SE, level 290 |
 | --- | --- | --- | --- |
 | ![](docs/screenshots/uvod.png) | ![](docs/screenshots/prelevani.png) | ![](docs/screenshots/level-150.png) | ![](docs/screenshots/iphone-se-level-290.png) |
@@ -59,11 +61,9 @@ Hotové a ověřené testy a během produkčního buildu v Chromiu v rozlišení
 
 ## Testování na iPhonu
 
-PWA (instalace a offline) vyžaduje HTTPS. Možnosti:
+V Safari otevři https://mike327327.github.io/elixir-sort/ a dej **Sdílet → Přidat na plochu**. Hru jednou spusť z plochy s připojením, aby se uložila do cache, pak funguje i v režimu letadlo.
 
-- **Cloudflare Tunnel** (nejrychlejší): `npm run build && npm run preview`, pak `cloudflared tunnel --url http://localhost:4173` a otevři vypsanou `https://….trycloudflare.com` adresu v Safari.
-- **Tvůj k3s**: `docker build -t elixir-sort .`, nahraj do registry a nasaď podle [deploy/k8s.yaml](deploy/k8s.yaml) (Ingress s TLS).
-- Jen hraní bez instalace: `npm run dev` a adresa v lokální síti (HTTP stačí).
+Rozpracovanou verzi bez nasazování zkusíš přes `npm run dev` a adresu v lokální síti (HTTP stačí, ale bez instalace a offline režimu). Ve WSL může být potřeba povolit port ve firewallu Windows.
 
 Kontrola na iPhonu (akceptační kritéria ze zadání):
 
@@ -73,6 +73,12 @@ Kontrola na iPhonu (akceptační kritéria ze zadání):
 - [ ] Nic pod notchem / Dynamic Islandem / domácím indikátorem
 - [ ] Zavřít appku uprostřed levelu → po spuštění pokračuje i se Zpět
 - [ ] Po nasazení nové verze se aktualizace projeví až na úvodní obrazovce
+
+## Nasazení
+
+Každý push do `master` spustí [workflow](.github/workflows/pages.yml): testy, build a nasazení na GitHub Pages, trvá pár minut. Hráč dostane novou verzi při příštím otevření hry, přepne se až na úvodní obrazovce.
+
+Alternativa na vlastní server: `docker build -t elixir-sort .`, nahrát do registry a nasadit podle [deploy/k8s.yaml](deploy/k8s.yaml) (Ingress s TLS).
 
 ## Struktura
 
@@ -88,6 +94,7 @@ src/
   sw-template.js   šablona service workeru (sw.js generuje vite.config.ts)
 scripts/     report levelů, generování ikon
 deploy/      nginx.conf, k8s.yaml
+.github/     nasazení na GitHub Pages
 ```
 
 ## Ladění obtížnosti

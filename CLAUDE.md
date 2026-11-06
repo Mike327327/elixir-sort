@@ -20,6 +20,10 @@ Offline PWA hra water sort (klon mechanik hry Magic Sort) pro iPhone 2022+. Vani
 - Texty UI jen v `src/ui/strings.ts`.
 - Po změně generátoru/křivky zvýšit `GENERATOR_VERSION` v `core/config.ts`.
 
+## Repozitář
+
+Repo je veřejné. Autor commitů je noreply adresa z `.git/config`, žádné osobní adresy do historie.
+
 ## Architektura
 
 - `core/rules.ts` – čisté funkce nad `Unit[][]` (+ `isHidden`). `core/game.ts` – třída `Game`: stav, Zpět (historie tahů), +1 lahev, Restart, odkrývání (`revealed` je trvalé), snapshot pro localStorage.
@@ -30,7 +34,8 @@ Offline PWA hra water sort (klon mechanik hry Magic Sort) pro iPhone 2022+. Vani
 - `render/layout.ts` – rozložení podle kapacit (řady seřazené podle výšky), `hitTest`. `render/renderer.ts` – kreslení lahve (sklo, tekutina vzpřímeně i nakloněná s vodorovnou hladinou), proud, ruka; `pourAngle` počítá náklon z objemu. Lahve v klidu se kopírují z per-slot spritu (`drawBottleCached`, klíč `spriteKey` podle obsahu), v animaci se kreslí živě. `render/confetti.ts` – konfety na vlastním plátně nad panely.
 - `ui/board.ts` – řadič hrací plochy: výběr, animace přelití (fly/pour/back), Zpět, zátky, odkrývání, částice, nápověda; rAF smyčka běží jen při animaci. Logický stav se mění okamžitě, animace ho dohání; lahve v animaci jsou zamčené. Výhra se vyhlásí, až doběhnou všechna přelití (`checkWin`), pomocníci jsou po vítězném tahu zablokovaní.
 - `main.ts` – obrazovky, panely, ukládání, tutoriál, tipy; výhra se ukládá hned po vítězném tahu (`recordWin`), panel přijde až po oslavě. `pwa.ts` – registrace SW (jen PROD), aktualizace jen na úvodní obrazovce, reload jen po vyžádané aktualizaci (ne po `clients.claim` při první instalaci).
-- `vite.config.ts` – plugin `elixir-sw` vyrobí `sw.js` ze `src/sw-template.js` se seznamem všech souborů buildu.
+- `vite.config.ts` – plugin `elixir-sw` vyrobí `sw.js` ze `src/sw-template.js` se seznamem všech souborů buildu. `index.html` se cachuje jen jako `./` (kvůli hostingům, které ho přesměrovávají).
+- `.github/workflows/pages.yml` – push do `master` nasadí hru na https://mike327327.github.io/elixir-sort/ (podsložka, cesty musí zůstat relativní: `base: './'`).
 
 ## Co zbývá
 

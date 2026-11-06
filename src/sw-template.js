@@ -4,7 +4,11 @@ const CACHE = `elixir-sort-${VERSION}`;
 const PRECACHE = __PRECACHE__;
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(PRECACHE)));
+  // cache: 'reload' obchází HTTP cache: hosting může HTML držet několik minut a stará stránka
+  // by po nasazení odkazovala na soubory, které už na serveru nejsou.
+  event.waitUntil(
+    caches.open(CACHE).then((cache) => cache.addAll(PRECACHE.map((url) => new Request(url, { cache: 'reload' })))),
+  );
 });
 
 self.addEventListener('activate', (event) => {
@@ -28,12 +32,9 @@ self.addEventListener('fetch', (event) => {
 
   if (req.mode === 'navigate') {
     // Aplikace je jedna stránka: vždy z cache (offline), síť jen jako záloha.
-    event.respondWith(
-      caches
-        .match('./index.html', { ignoreSearch: true })
-        .then((cached) => cached || caches.match('./', { ignoreSearch: true }))
-        .then((cached) => cached || fetch(req)),
-    );
+    // Cachuje se jen './': některé hostingy přesměrují /index.html a přesměrovanou odpověď
+    // prohlížeč při navigaci odmítne, takže by se hra offline neotevřela.
+    event.respondWith(caches.match('./', { ignoreSearch: true }).then((cached) => cached || fetch(req)));
     return;
   }
 

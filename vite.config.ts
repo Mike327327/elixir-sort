@@ -27,7 +27,7 @@ function serviceWorkerPlugin(): Plugin {
       walk(publicDir);
 
       const files = Array.from(new Set(['./', ...bundleFiles, ...publicFiles]))
-        .filter((f) => f !== 'sw.js')
+        .filter((f) => f !== 'sw.js' && f !== 'index.html')
         .map((f) => (f === './' ? f : `./${f}`))
         .sort();
 

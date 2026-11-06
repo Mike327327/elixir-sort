@@ -353,4 +353,4 @@ class App {
 }
 
 new App();
-registerServiceWorker();
+registerServiceWorker(() => $('screen-home').classList.contains('active'));

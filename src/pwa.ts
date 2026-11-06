@@ -3,26 +3,32 @@
  * Nová verze čeká, dokud hráč není na úvodní obrazovce – nikdy se nepřepne uprostřed levelu.
  */
 let waiting: ServiceWorker | null = null;
+let updateRequested = false;
 let reloading = false;
 
-export function registerServiceWorker(): void {
+export function registerServiceWorker(isSafeToUpdate: () => boolean): void {
   const env = (import.meta as unknown as { env?: { PROD?: boolean } }).env;
   if (!env?.PROD || !('serviceWorker' in navigator)) return;
+  const onUpdateReady = (sw: ServiceWorker) => {
+    waiting = sw;
+    if (isSafeToUpdate()) applyPendingUpdate();
+  };
   window.addEventListener('load', () => {
     navigator.serviceWorker
       .register('./sw.js')
       .then((reg) => {
-        if (reg.waiting) waiting = reg.waiting;
+        if (reg.waiting && navigator.serviceWorker.controller) onUpdateReady(reg.waiting);
         reg.addEventListener('updatefound', () => {
           const sw = reg.installing;
           sw?.addEventListener('statechange', () => {
-            if (sw.state === 'installed' && navigator.serviceWorker.controller) waiting = sw;
+            if (sw.state === 'installed' && navigator.serviceWorker.controller) onUpdateReady(sw);
           });
         });
       })
       .catch(() => undefined);
+    // controller se mění i při první instalaci (clients.claim), tehdy se přenačítat nesmí.
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (reloading) return;
+      if (!updateRequested || reloading) return;
       reloading = true;
       window.location.reload();
     });
@@ -31,5 +37,7 @@ export function registerServiceWorker(): void {
 
 /** Zavolej, když je bezpečné přepnout na novou verzi (hráč je na úvodní obrazovce). */
 export function applyPendingUpdate(): void {
-  if (waiting) waiting.postMessage({ type: 'SKIP_WAITING' });
+  if (!waiting) return;
+  updateRequested = true;
+  waiting.postMessage({ type: 'SKIP_WAITING' });
 }

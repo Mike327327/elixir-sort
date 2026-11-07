@@ -76,6 +76,7 @@ class App {
     const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     const standalone =
       window.matchMedia('(display-mode: standalone)').matches || (navigator as unknown as { standalone?: boolean }).standalone === true;
+    document.documentElement.classList.toggle('standalone', standalone);
     if (isIos && !standalone) {
       const hint = $('install-hint');
       hint.textContent = S.installHint;

@@ -17,15 +17,20 @@ export class ConfettiLayer {
   }
 
   start(colors: number[]): void {
-    const w = window.innerWidth;
-    const h = window.innerHeight;
+    // Rozměr podle CSS (celá obrazovka), ne innerHeight – v nainstalované PWA na iOS je kratší.
+    this.canvas.hidden = false;
+    const rect = this.canvas.getBoundingClientRect();
+    const w = rect.width || window.innerWidth;
+    const h = rect.height || window.innerHeight;
     // Víc než 2× není na malých poletujících obdélnících vidět a stálo by to paměť.
     this.dpr = Math.min(2, window.devicePixelRatio || 1);
     this.canvas.width = Math.round(w * this.dpr);
     this.canvas.height = Math.round(h * this.dpr);
     this.ctx = this.canvas.getContext('2d');
-    if (!this.ctx) return;
-    this.canvas.hidden = false;
+    if (!this.ctx) {
+      this.canvas.hidden = true;
+      return;
+    }
     this.particles.clear();
     this.particles.confetti(w, h, colors);
     this.lastT = performance.now();

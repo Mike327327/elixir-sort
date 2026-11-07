@@ -4,10 +4,10 @@ import type { LevelParams, Tier } from './types.ts';
  * Verze generátoru. Při změně algoritmu nebo křivky ji zvyš – levely se pak vygenerují jinak
  * a rozehraný snapshot starší verze se zahodí.
  */
-export const GENERATOR_VERSION = 1;
+export const GENERATOR_VERSION = 2;
 
 /** Kolik barev umí hra vykreslit (viz render/palette.ts). */
-export const MAX_COLORS = 10;
+export const MAX_COLORS = 12;
 
 export const TUTORIAL_LEVELS = 3;
 export const HIDDEN_INTRO_LEVEL = 31;
@@ -42,11 +42,11 @@ export interface Band {
  */
 export const BANDS: readonly Band[] = [
   { from: 1, to: 3, colors: [2, 3], bottles: [4, 5], empties: [2, 2], capMin: [4, 4], capMax: [4, 4], hidden: [0, 0], partial: [0, 0], pick: [0, 0] },
-  { from: 4, to: 15, colors: [4, 5], bottles: [6, 8], empties: [2, 2], capMin: [4, 4], capMax: [4, 4], hidden: [0, 0], partial: [0, 1], pick: [0.2, 0.5] },
-  { from: 16, to: 30, colors: [5, 6], bottles: [9, 12], empties: [2, 2], capMin: [3, 3], capMax: [5, 5], hidden: [0, 0], partial: [1, 1], pick: [0.3, 0.6] },
-  { from: 31, to: 60, colors: [6, 8], bottles: [12, 16], empties: [2, 2], capMin: [3, 3], capMax: [6, 6], hidden: [2, 4], partial: [1, 1], pick: [0.3, 0.6] },
-  { from: 61, to: 120, colors: [7, 9], bottles: [16, 20], empties: [2, 2], capMin: [2, 2], capMax: [7, 7], hidden: [3, 6], partial: [1, 1], pick: [0.4, 0.7] },
-  { from: 121, to: 300, colors: [8, 10], bottles: [20, 24], empties: [2, 2], capMin: [2, 2], capMax: [8, 8], hidden: [4, 8], partial: [1, 1], pick: [0.4, 0.8] },
+  { from: 4, to: 12, colors: [5, 7], bottles: [7, 10], empties: [2, 2], capMin: [4, 4], capMax: [4, 4], hidden: [0, 0], partial: [0, 1], pick: [0.4, 0.6] },
+  { from: 13, to: 30, colors: [7, 9], bottles: [10, 14], empties: [2, 2], capMin: [3, 3], capMax: [5, 6], hidden: [0, 0], partial: [1, 1], pick: [0.5, 0.7] },
+  { from: 31, to: 60, colors: [8, 10], bottles: [14, 18], empties: [2, 2], capMin: [3, 2], capMax: [6, 7], hidden: [3, 5], partial: [1, 1], pick: [0.5, 0.8] },
+  { from: 61, to: 100, colors: [10, 12], bottles: [18, 24], empties: [2, 2], capMin: [2, 2], capMax: [7, 8], hidden: [4, 8], partial: [1, 1], pick: [0.6, 0.85] },
+  { from: 101, to: 200, colors: [12, 12], bottles: [24, 24], empties: [2, 2], capMin: [2, 2], capMax: [8, 8], hidden: [6, 10], partial: [1, 1], pick: [0.7, 0.95] },
 ];
 
 export const GEN = {

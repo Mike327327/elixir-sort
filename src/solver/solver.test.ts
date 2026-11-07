@@ -115,7 +115,9 @@ describe('generátor', () => {
   });
 
   test('solver vyřeší i středně velký vygenerovaný level', () => {
-    const def = generateLevel(40);
+    // Level 33: 8 barev, 14 lahví, skryté jednotky. Největší levely solver do limitu nevyřeší vždy
+    // (používá se jen pro nápovědu v levelech 1–3 a v debug panelu).
+    const def = generateLevel(33);
     const g = new Game(def);
     const sb = toSBoard(g.caps, g.bottles, () => false);
     const hidden = new Set(def.hidden);

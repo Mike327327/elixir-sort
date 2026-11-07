@@ -19,6 +19,8 @@ Offline PWA hra water sort (klon mechanik hry Magic Sort) pro iPhone 2022+. Vani
 - Logika (`core/`, `solver/`) nesmí sahat na DOM; musí jít testovat v Node.
 - Texty UI jen v `src/ui/strings.ts`.
 - Po změně generátoru/křivky zvýšit `GENERATOR_VERSION` v `core/config.ts`.
+- `MAX_COLORS` v `core/config.ts` nesmí přesáhnout délku `PALETTE` a `SYMBOLS` v `render/palette.ts`.
+- Výška celé obrazovky jen přes `var(--app-h)`, ne `inset: 0`, `100%` ani `100dvh` (v nainstalované PWA na iOS jsou kratší o stavový řádek → bílý pruh dole). Pozadí kreslí `#app`. Podrobně README, sekce „Celá obrazovka na iOS“.
 
 ## Repozitář
 
@@ -39,7 +41,7 @@ Repo je veřejné. Autor commitů je noreply adresa z `.git/config`, žádné os
 
 ## Co zbývá
 
-1. Test na iPhonu (checklist v README): FPS, zvuky, safe areas, instalace, offline. Dosud běželo jen v Chromiu, ne v Safari.
-2. Ladění obtížnosti v `core/config.ts` podle hraní.
+1. Test na iPhonu (checklist v README): FPS, zvuky, safe areas, instalace, offline, zmizel bílý pruh dole. Dosud běželo jen v Chromiu, ne v Safari.
+2. Ladění obtížnosti v `core/config.ts` podle hraní (křivka zrychlená 7. 11. 2026, dalším krokem by byla 1 náhradní lahev místo 2).
 3. Rozhodnout o lintu: ESLint je v rozporu s pravidlem o dev závislostech výše.
 4. Volitelné: vysoké lahve po stranách přes víc řad.

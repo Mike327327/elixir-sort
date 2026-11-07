@@ -21,6 +21,7 @@ export const S = {
   settings: 'Nastavení',
   sound: 'Zvuky',
   symbols: 'Symboly pro barvoslepé',
+  hints: 'Nápověda (levely 1–3)',
   resetProgress: 'Smazat postup',
   resetConfirm: 'Opravdu smazat? Ťukni znovu',
   resetDone: 'Postup smazán',

@@ -149,6 +149,14 @@ class App {
       this.board.requestRender();
       this.persist();
     });
+    const hints = $<HTMLInputElement>('opt-hints');
+    hints.checked = this.data.settings.hints;
+    hints.addEventListener('change', () => {
+      this.data.settings.hints = hints.checked;
+      this.persist();
+      // Mimo hru ruka nemá kde být (a rozběhla by smyčku skryté plochy); ukáže se při startu levelu.
+      if ($('screen-game').classList.contains('active')) void this.refreshTutorialHint();
+    });
 
     // iOS: žádný zoom ani posouvání stránky.
     document.addEventListener('gesturestart', (e) => e.preventDefault());
@@ -317,14 +325,14 @@ class App {
     return this.levels.solve(sb.caps, sb.b);
   }
 
-  /** V tutoriálu (levely 1–3) ukazuje ruka další dobrý tah. */
+  /** V tutoriálu (levely 1–3) ukazuje ruka další dobrý tah, když je nápověda zapnutá v nastavení. */
   private async refreshTutorialHint(): Promise<void> {
     const g = this.game;
-    if (!g || g.def.level > TUTORIAL_LEVELS || g.isWon()) {
+    const token = ++this.hintToken;
+    if (!g || !this.data.settings.hints || g.def.level > TUTORIAL_LEVELS || g.isWon()) {
       this.board.setHint(null);
       return;
     }
-    const token = ++this.hintToken;
     const moves = await this.solveCurrent();
     if (token !== this.hintToken || g !== this.game) return;
     this.board.setHint(moves && moves.length > 0 ? moves[0] : null);

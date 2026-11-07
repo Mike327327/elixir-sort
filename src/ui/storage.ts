@@ -6,6 +6,8 @@ const KEY = 'elixir-sort:v1';
 export interface Settings {
   sound: boolean;
   symbols: boolean;
+  /** Ukazovací ruka s dalším tahem v levelech 1–3. Výchozí stav vypnuto. */
+  hints: boolean;
 }
 
 export interface SaveData {
@@ -19,7 +21,7 @@ export interface SaveData {
 export function defaultData(): SaveData {
   return {
     level: 1,
-    settings: { sound: true, symbols: false },
+    settings: { sound: true, symbols: false, hints: false },
     stats: { completed: 0, totalMoves: 0 },
     current: null,
     seenTips: [],

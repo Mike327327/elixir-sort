@@ -25,11 +25,11 @@ FLASK = """
 BODY = """
 <g clip-path="url(#in)">
   <rect width="200" height="220" fill="#fff" fill-opacity=".4"/>
-  <rect y="176" width="200" height="40" fill="#7a3fe0"/>
-  <rect y="150" width="200" height="27" fill="#2f9bff"/>
-  <rect y="124" width="200" height="27" fill="#ffd23a"/>
-  <rect y="100" width="200" height="25" fill="#ff5fae"/>
-  <ellipse cx="100" cy="100" rx="60" ry="5" fill="#ffa3d2"/>
+  <rect y="176" width="200" height="40" fill="#a88af5"/>
+  <rect y="150" width="200" height="27" fill="#78b0f7"/>
+  <rect y="124" width="200" height="27" fill="#ffd95e"/>
+  <rect y="100" width="200" height="25" fill="#f8a5d6"/>
+  <ellipse cx="100" cy="100" rx="60" ry="5" fill="#fbc9e6"/>
 </g>
 <path d="M78 40h44v52l42 78c8 16-2 30-20 30H56c-18 0-28-14-20-30l42-78Z" fill="none" stroke="#fff" stroke-width="6" stroke-linejoin="round"/>
 <rect x="70" y="28" width="60" height="14" rx="7" fill="#fff"/>

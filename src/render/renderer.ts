@@ -390,7 +390,7 @@ export class Renderer {
       if (layer.hidden > 0) {
         this.paintHiddenCover(g, y1, h, layer.hidden);
       } else if (symbols) {
-        ctx.fillStyle = 'rgba(255,255,255,0.88)';
+        ctx.fillStyle = 'rgba(52,26,82,0.62)';
         ctx.font = `${Math.round(g.u * 0.46)}px -apple-system, system-ui, sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';

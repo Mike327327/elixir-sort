@@ -39,9 +39,9 @@ Debug režim: přidej do adresy `?debug`. Vpravo nahoře se objeví FPS, po ťuk
 Hotové a ověřené testy a během produkčního buildu v Chromiu v rozlišení iPhonu 14, 14 Pro a SE:
 
 - Pravidla, Zpět, +1 lahev, Restart, uzavírání lahví, výhra, bezvýchodná situace
-- Lahve různé výšky (2–8), barva přes více lahví, skryté barvy od levelu 31, až 12 barev
+- Všechny lahve mají kapacitu 4, až 30 lahví v levelu, barva přes více lahví, skryté barvy od levelu 31, až 12 barev
 - Nekonečný deterministický generátor; levely 1–300 ověřeně řešitelné přes engine hry; generování typicky 40–70 ms na PC (maximum 90 ms, jednou při zátěži 279 ms) ve Web Workeru
-- Rozložení: 24 lahví v nejhorším případě 40,5 pt na iPhonu SE a 47,5 pt na iPhonu 14, stránka se neposouvá
+- Rozložení: 24 lahví má 45,5 pt na iPhonu SE a 47,5 pt na iPhonu 14, 31 lahví (30 + přidaná) 39 a 40,5 pt, stránka se neposouvá
 - Animace: zvednutí, let nad cílovou lahev, fyzikální náklon s vodorovnou hladinou, proud, zátka se zábleskem a jiskrami, rozlití barvy při odkrytí, zatřesení, konfety přes celou obrazovku
 - Lahve v klidu se kopírují z předkresleného plátna: při 24 lahvích a 3 současných přelitích kleslo vykreslení snímku v softwarovém Chromiu z 13–18 ms na 8,5–11 ms a snímků nad 20 ms z 6–88 na 0–9 za 8 s
 - Zvuky přes Web Audio, nápověda s rukou v levelech 1–3 (ve výchozím stavu vypnutá, zapíná se v nastavení), tip ke skrytým barvám, banner těžkých levelů
@@ -110,14 +110,15 @@ Nainstalovaná PWA se stavovým řádkem `black-translucent` posune stránku pod
 
 Vše je v [src/core/config.ts](src/core/config.ts):
 
-- `BANDS` – pásma levelů: počet barev, lahví, prázdných lahví, rozsah kapacit, skryté jednotky. To je hrubá obtížnost.
+- `BANDS` – pásma levelů: počet barev, lahví, prázdných lahví, skryté jednotky. To je hrubá obtížnost. Při 12 barvách víc lahví hru podle měření usnadňuje (barvy se opakují a je víc míst, kam přelít), obtížnost tam drží hlavně `pick`.
+- `CAPACITY` – kapacita všech lahví (4), `MAX_BOTTLES` – strop počtu lahví (30, víc se na iPhone SE nevejde v rozumné velikosti).
 - `pick` v pásmu – generátor vyrobí 8 kandidátů, seřadí je podle naměřené obtížnosti a vezme ten na daném kvantilu (0 = nejlehčí, 1 = nejtěžší). To je jemná obtížnost.
 - Po každé změně generátoru nebo křivky zvyš `GENERATOR_VERSION` (rozehraný level staré verze se zahodí) a pusť `npm test` a `npm run levels`.
 
 ## Odchylky od zadání
 
 - **Uzavření lahve se skrytou jednotkou:** plná jednobarevná lahev se uzavře, i když v ní je neodkrytá jednotka, a ta se při tom odkryje. Podle původního pravidla by skrytá jednotka na dně lahve, ze které se už nepřelévá, zablokovala výhru.
-- **Generátor:** místo náhodného rozdání + solveru staví levely pozpátku z vyřešeného stavu. Náhodné rozdání s různými kapacitami je u velkých levelů většinou neřešitelné. Řešitelnost je zaručená konstrukcí a test ji ověřuje přehráním řešení v enginu hry.
+- **Generátor:** místo náhodného rozdání + solveru staví levely pozpátku z vyřešeného stavu. Náhodné rozdání je u velkých levelů většinou neřešitelné. Řešitelnost je zaručená konstrukcí a test ji ověřuje přehráním řešení v enginu hry.
 - **Obtížnost:** vybírá se kandidát podle pořadí (`pick`), ne podle cílového podílu prohraných her. Náhodný hráč velké levely nedohraje nikdy, takže tahle metrika u nich nerozlišovala.
 - **Solver:** best-first s heuristikou (prohledávání do hloubky se na velkých levelech ztrácelo). Používá se pro nápovědu v tutoriálu a debug. Na velkých levelech (zhruba od 10 barev) do limitu stavů řešení často nenajde, debug „Řešení“ pak nic neukáže; hratelnost to neovlivňuje, řešitelnost zaručuje generátor.
 - **Testy:** `node:test` místo Vitestu – bez závislostí, běží rovnou v Node 22.
@@ -127,11 +128,12 @@ Vše je v [src/core/config.ts](src/core/config.ts):
 - **Generování při selhání workeru:** když Web Worker nejde spustit, level se vygeneruje na hlavním vlákně. V běžném provozu se to neděje, je to jen pojistka, aby hra nezůstala bez levelu.
 - **Prázdné lahve:** všechna pásma mají 2 náhradní lahve, jedna z nich bývá na začátku částečně naplněná (jako na snímku originálu). Generátor zvládne i 1 náhradní lahev bez zpomalení; to je další páka, kdyby hra byla pořád lehká.
 - **Barvy:** 12 pastelových barev místo 10 sytých (přání po prvním hraní; přibyla vínová a mléčně bílá). Barvy se liší i světlostí, nejmenší vzájemná vzdálenost ΔE2000 je 18,7 (původní sytá paleta 19,8 při 10 barvách). Symboly pro barvoslepé jsou tmavé, bílé na pastelu zanikaly.
-- **Křivka obtížnosti:** strmější a s víc barvami než v zadání, protože hra byla moc lehká. Levely 4–12 mají 5–7 barev a 7–10 lahví, 13–30 7–9 barev a 10–14 lahví, 31–60 8–10 barev a 14–18 lahví, od levelu 100 12 barev a 24 lahví (dřív 10 barev až od 121). Víc než 24 lahví nejde: na iPhonu SE by lahev byla užší než 40 pt.
+- **Kapacity:** všechny lahve mají vždy kapacitu 4, zadání chtělo od levelu 16 různé kapacity 2–8 (přání po hraní). Obtížnost, o kterou hra bez různých kapacit přišla, nahrazuje víc lahví, rovnoměrné rozdělení barev do lahví a vyšší `pick`. Naměřená obtížnost je v levelech 21–80 stejná nebo vyšší než s různými kapacitami, od 81 v průměru o 0,02 nižší; řešení jsou v pozdních levelech o 5–10 % delší. Engine, solver i rozložení různé kapacity dál umí.
+- **Křivka obtížnosti:** strmější a s víc barvami než v zadání, protože hra byla moc lehká. Levely 4–12 mají 5–7 barev a 7–10 lahví, 13–30 8–11 barev a 11–16 lahví, 31–60 9–12 barev a 16–22 lahví, 61–100 12 barev a 22–28 lahví, od 101 12 barev a 28–30 lahví. Nad 24 lahví je lahev na iPhonu SE široká 39 pt místo 40 pt ze zadání, od 36 lahví by měla jen 34 pt, proto strop 30.
 - **Tutoriál:** ruka, která ukazuje další tah v levelech 1–3, je ve výchozím stavu vypnutá. Zapíná se v Nastavení → Nápověda (levely 1–3).
-- **+1 lahev na iPhonu SE:** s 25. přidanou lahví a kapacitami až 8 má lahev v nejhorším případě 39 pt. Zadání požaduje 40 pt při 24 lahvích, to platí.
+- **+1 lahev na iPhonu SE:** i s 31. přidanou lahví má lahev 39 pt. Zadání požaduje 40 pt při 24 lahvích, to platí (45,5 pt).
 - **Předkreslení:** lahve v klidu jsou předkreslené celé včetně tekutiny. Lahve v animaci (nakloněné, plnící se, se zátkou ve vzduchu) se kreslí živě.
-- **Nedělal jsem:** vysoké lahve po stranách přes víc řad (volitelné v zadání), lint (ESLint by porušil pravidlo o dev závislostech v CLAUDE.md; `tsc` se `strict` a `noUnused*` kontroluje část téhož).
+- **Nedělal jsem:** vysoké lahve po stranách přes víc řad (volitelné v zadání, se stejnými kapacitami nemá smysl), lint (ESLint by porušil pravidlo o dev závislostech v CLAUDE.md; `tsc` se `strict` a `noUnused*` kontroluje část téhož).
 
 ## Pokračování s Claude Code
 

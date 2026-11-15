@@ -33,7 +33,7 @@ Repo je veřejné. Autor commitů je noreply adresa z `.git/config`, žádné os
 - `solver/generator.ts` – zpětná konstrukce: z vyřešeného stavu náhodné obrácené tahy (s návratem při zaseknutí), hodnocení promíchanosti, výběr kandidáta podle obtížnosti na kvantilu `params.pick`. Vrací i řešení (test ho přehrává v `Game`).
 - `solver/solver.ts` – best-first solver (`solve`) + `measureDifficulty` (náhodní hladoví hráči).
 - `worker/` – generování a solver ve Web Workeru; `LevelService` cachuje a předgenerovává další level, při selhání workeru generuje na hlavním vlákně.
-- `render/layout.ts` – rozložení podle kapacit (řady seřazené podle výšky), `hitTest`. `render/renderer.ts` – kreslení lahve (sklo, tekutina vzpřímeně i nakloněná s vodorovnou hladinou), proud, ruka; `pourAngle` počítá náklon z objemu. Lahve v klidu se kopírují z per-slot spritu (`drawBottleCached`, klíč `spriteKey` podle obsahu), v animaci se kreslí živě. `render/confetti.ts` – konfety na vlastním plátně nad panely.
+- `render/layout.ts` – rozložení podle kapacit (řady seřazené podle výšky; generátor teď dává všem lahvím kapacitu `CAPACITY`), `hitTest`. `render/renderer.ts` – kreslení lahve (sklo, tekutina vzpřímeně i nakloněná s vodorovnou hladinou), proud, ruka; `pourAngle` počítá náklon z objemu. Lahve v klidu se kopírují z per-slot spritu (`drawBottleCached`, klíč `spriteKey` podle obsahu), v animaci se kreslí živě. `render/confetti.ts` – konfety na vlastním plátně nad panely.
 - `ui/board.ts` – řadič hrací plochy: výběr, animace přelití (fly/pour/back), Zpět, zátky, odkrývání, částice, nápověda; rAF smyčka běží jen při animaci. Logický stav se mění okamžitě, animace ho dohání; lahve v animaci jsou zamčené. Výhra se vyhlásí, až doběhnou všechna přelití (`checkWin`), pomocníci jsou po vítězném tahu zablokovaní.
 - `main.ts` – obrazovky, panely, ukládání, tutoriál, tipy; výhra se ukládá hned po vítězném tahu (`recordWin`), panel přijde až po oslavě. `pwa.ts` – registrace SW (jen PROD), aktualizace jen na úvodní obrazovce, reload jen po vyžádané aktualizaci (ne po `clients.claim` při první instalaci).
 - `vite.config.ts` – plugin `elixir-sw` vyrobí `sw.js` ze `src/sw-template.js` se seznamem všech souborů buildu. `index.html` se cachuje jen jako `./` (kvůli hostingům, které ho přesměrovávají).
@@ -42,6 +42,5 @@ Repo je veřejné. Autor commitů je noreply adresa z `.git/config`, žádné os
 ## Co zbývá
 
 1. Test na iPhonu (checklist v README): FPS, zvuky, safe areas, instalace, offline, zmizel bílý pruh dole. Dosud běželo jen v Chromiu, ne v Safari.
-2. Ladění obtížnosti v `core/config.ts` podle hraní (křivka zrychlená 7. 11. 2026, dalším krokem by byla 1 náhradní lahev místo 2).
+2. Ladění obtížnosti v `core/config.ts` podle hraní (křivka zrychlená 7. 11. 2026, 15. 11. 2026 všechny lahve kapacita 4 a až 30 lahví; dalším krokem by byla 1 náhradní lahev místo 2, podle měření nejsilnější páka: u 30 lahví obtížnost 0,35 → 0,59).
 3. Rozhodnout o lintu: ESLint je v rozporu s pravidlem o dev závislostech výše.
-4. Volitelné: vysoké lahve po stranách přes víc řad.

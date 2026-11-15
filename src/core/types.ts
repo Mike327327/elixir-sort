@@ -32,8 +32,6 @@ export interface LevelParams {
   colors: number;
   bottles: number;
   empties: number;
-  capMin: number;
-  capMax: number;
   hidden: number;
   partial: number;
   /** Který kandidát se vybere podle obtížnosti: 0 = nejlehčí, 1 = nejtěžší. */

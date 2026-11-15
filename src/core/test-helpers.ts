@@ -32,8 +32,6 @@ export function makeLevel(caps: number[], bottles: string[], level = 1): LevelDe
       colors,
       bottles: caps.length,
       empties: 0,
-      capMin: Math.min(...caps),
-      capMax: Math.max(...caps),
       hidden: hidden.length,
       partial: 0,
       pick: 0.5,

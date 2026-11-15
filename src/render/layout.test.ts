@@ -2,6 +2,7 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { bottleGeom, computeLayout, hitTest, pourPlacement, type Slot } from './layout.ts';
 import { generateLevel } from '../solver/generator.ts';
+import { CAPACITY, MAX_BOTTLES } from '../core/config.ts';
 
 /** Hrací plocha po odečtení lišt a safe areas (CSS px, na výšku). */
 const IPHONE_14 = { w: 390, h: 844 - 47 - 34 - 64 - 84 };
@@ -34,23 +35,24 @@ describe('rozložení', () => {
     assert.equal(l.rows, 1);
   });
 
-  test('24 lahví s kapacitami až 8 má na iPhonu SE i 14 šířku aspoň 40 pt', () => {
-    const caps = [8, 7, 7, 6, 6, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3, 2, 2, 4];
-    const se = check(caps, IPHONE_SE, 40);
+  test('24 lahví má na iPhonu SE i 14 šířku aspoň 40 pt', () => {
+    const caps = new Array<number>(24).fill(CAPACITY);
+    check(caps, IPHONE_SE, 40);
+    check(caps, IPHONE_14, 40);
+  });
+
+  test('nejvíc lahví i s +1 lahví má na iPhonu SE aspoň 39 pt a na iPhonu 14 aspoň 40 pt', () => {
+    const caps = new Array<number>(MAX_BOTTLES + 1).fill(CAPACITY);
+    const se = check(caps, IPHONE_SE, 39);
     const i14 = check(caps, IPHONE_14, 40);
-    // Přidaná lahev (+1) je navíc nad rámec zadání, smí být o trochu užší.
-    const seAdded = check(caps.concat([4]), IPHONE_SE, 38.5);
-    console.log(`    šířka lahve: SE ${se.w} px (s přidanou ${seAdded.w} px), iPhone 14 ${i14.w} px`);
+    console.log(`    ${caps.length} lahví: SE ${se.w} px, iPhone 14 ${i14.w} px`);
   });
 
   test('vygenerované levely 1–300 se vejdou na iPhone SE', () => {
-    let minW = Infinity;
     for (let level = 1; level <= 300; level += 3) {
-      const caps = generateLevel(level).capacities.concat([4]); // i s +1 lahví
-      const l = check(caps, IPHONE_SE, 34);
-      minW = Math.min(minW, l.w);
+      const caps = generateLevel(level).capacities.concat([CAPACITY]); // i s +1 lahví
+      check(caps, IPHONE_SE, 39);
     }
-    assert.ok(minW >= 34);
   });
 
   test('trefení lahve funguje i s okrajem', () => {

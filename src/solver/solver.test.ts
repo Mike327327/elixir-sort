@@ -2,7 +2,7 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Game } from '../core/game.ts';
 import { createRng } from '../core/rng.ts';
-import { paramsForLevel, MAX_COLORS } from '../core/config.ts';
+import { CAPACITY, MAX_BOTTLES, MAX_COLORS, paramsForLevel } from '../core/config.ts';
 import { makeLevel } from '../core/test-helpers.ts';
 import type { LevelDef, Move } from '../core/types.ts';
 import { applyS, genMoves, toSBoard } from './board.ts';
@@ -65,7 +65,7 @@ describe('generátor', () => {
       const { params: p } = paramsForLevel(level);
       assert.ok(p.colors >= 1 && p.colors <= MAX_COLORS, `level ${level}: barvy`);
       assert.ok(p.colors <= p.bottles - p.empties, `level ${level}: málo lahví pro barvy`);
-      assert.ok(p.capMin >= 2 && p.capMax <= 8 && p.capMin <= p.capMax, `level ${level}: kapacity`);
+      assert.ok(p.bottles <= MAX_BOTTLES, `level ${level}: moc lahví`);
       assert.ok(p.pick >= 0 && p.pick <= 1, `level ${level}: pick`);
     }
   });
@@ -75,7 +75,8 @@ describe('generátor', () => {
       const { def, solution } = generateLevelWithSolution(level);
       assert.ok(solution.length > 0, `level ${level}: chybí řešení`);
       assert.ok(def.colors <= MAX_COLORS);
-      assert.ok(def.capacities.length <= 26, `level ${level}: moc lahví`);
+      assert.ok(def.capacities.length <= MAX_BOTTLES, `level ${level}: moc lahví`);
+      assert.ok(def.capacities.every((c) => c === CAPACITY), `level ${level}: různé kapacity`);
       for (let i = 0; i < def.bottles.length; i++) {
         assert.ok(def.bottles[i].length <= def.capacities[i], `level ${level}: přeplněná lahev`);
       }
@@ -115,7 +116,7 @@ describe('generátor', () => {
   });
 
   test('solver vyřeší i středně velký vygenerovaný level', () => {
-    // Level 33: 8 barev, 14 lahví, skryté jednotky. Největší levely solver do limitu nevyřeší vždy
+    // Level 33: 9 barev, 16 lahví, skryté jednotky. Největší levely solver do limitu nevyřeší vždy
     // (používá se jen pro nápovědu v levelech 1–3 a v debug panelu).
     const def = generateLevel(33);
     const g = new Game(def);

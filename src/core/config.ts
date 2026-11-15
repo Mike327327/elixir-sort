@@ -4,10 +4,19 @@ import type { LevelParams, Tier } from './types.ts';
  * Verze generátoru. Při změně algoritmu nebo křivky ji zvyš – levely se pak vygenerují jinak
  * a rozehraný snapshot starší verze se zahodí.
  */
-export const GENERATOR_VERSION = 2;
+export const GENERATOR_VERSION = 3;
 
 /** Kolik barev umí hra vykreslit (viz render/palette.ts). */
 export const MAX_COLORS = 12;
+
+/** Kapacita lahve. Všechny lahve ve všech levelech jsou stejné, obtížnost dělá počet lahví a barev. */
+export const CAPACITY = 4;
+
+/**
+ * Nejvíc lahví v levelu (bez +1 lahve). S 31 lahvemi má lahev na iPhonu SE šířku 39 pt,
+ * od 36 už jen 34 pt (viz render/layout.test.ts).
+ */
+export const MAX_BOTTLES = 30;
 
 export const TUTORIAL_LEVELS = 3;
 export const HIDDEN_INTRO_LEVEL = 31;
@@ -24,8 +33,6 @@ export interface Band {
   bottles: Range;
   /** Počet náhradních lahví (prázdných ve vyřešeném stavu). */
   empties: Range;
-  capMin: Range;
-  capMax: Range;
   hidden: Range;
   /** >0 = část volného místa se rozprostře do více lahví (ne všechny lahve jsou plné). */
   partial: Range;
@@ -41,12 +48,12 @@ export interface Band {
  * Poslední pásmo se interpoluje do levelu `to` a pak zůstává na konečných hodnotách.
  */
 export const BANDS: readonly Band[] = [
-  { from: 1, to: 3, colors: [2, 3], bottles: [4, 5], empties: [2, 2], capMin: [4, 4], capMax: [4, 4], hidden: [0, 0], partial: [0, 0], pick: [0, 0] },
-  { from: 4, to: 12, colors: [5, 7], bottles: [7, 10], empties: [2, 2], capMin: [4, 4], capMax: [4, 4], hidden: [0, 0], partial: [0, 1], pick: [0.4, 0.6] },
-  { from: 13, to: 30, colors: [7, 9], bottles: [10, 14], empties: [2, 2], capMin: [3, 3], capMax: [5, 6], hidden: [0, 0], partial: [1, 1], pick: [0.5, 0.7] },
-  { from: 31, to: 60, colors: [8, 10], bottles: [14, 18], empties: [2, 2], capMin: [3, 2], capMax: [6, 7], hidden: [3, 5], partial: [1, 1], pick: [0.5, 0.8] },
-  { from: 61, to: 100, colors: [10, 12], bottles: [18, 24], empties: [2, 2], capMin: [2, 2], capMax: [7, 8], hidden: [4, 8], partial: [1, 1], pick: [0.6, 0.85] },
-  { from: 101, to: 200, colors: [12, 12], bottles: [24, 24], empties: [2, 2], capMin: [2, 2], capMax: [8, 8], hidden: [6, 10], partial: [1, 1], pick: [0.7, 0.95] },
+  { from: 1, to: 3, colors: [2, 3], bottles: [4, 5], empties: [2, 2], hidden: [0, 0], partial: [0, 0], pick: [0, 0] },
+  { from: 4, to: 12, colors: [5, 7], bottles: [7, 10], empties: [2, 2], hidden: [0, 0], partial: [0, 1], pick: [0.4, 0.6] },
+  { from: 13, to: 30, colors: [8, 11], bottles: [11, 16], empties: [2, 2], hidden: [0, 0], partial: [1, 1], pick: [0.7, 0.85] },
+  { from: 31, to: 60, colors: [9, 12], bottles: [16, 22], empties: [2, 2], hidden: [3, 6], partial: [1, 1], pick: [0.7, 0.9] },
+  { from: 61, to: 100, colors: [12, 12], bottles: [22, 28], empties: [2, 2], hidden: [5, 9], partial: [1, 1], pick: [0.8, 0.95] },
+  { from: 101, to: 200, colors: [12, 12], bottles: [28, 30], empties: [2, 2], hidden: [8, 12], partial: [1, 1], pick: [0.9, 1] },
 ];
 
 export const GEN = {
@@ -80,8 +87,6 @@ function paramsFromBand(band: Band, t: number): LevelParams {
     colors: Math.round(lerp(band.colors, tt)),
     bottles: Math.round(lerp(band.bottles, tt)),
     empties: Math.round(lerp(band.empties, tt)),
-    capMin: Math.round(lerp(band.capMin, tt)),
-    capMax: Math.round(lerp(band.capMax, tt)),
     hidden: Math.round(lerp(band.hidden, tt)),
     partial: Math.round(lerp(band.partial, tt)),
     pick: clamp01(lerp(band.pick, tt)),
@@ -105,7 +110,7 @@ export function paramsForLevel(level: number): { params: LevelParams; tier: Tier
     params.pick = 1;
   } else if (tier === 'hard') {
     params = paramsFromBand(band, 1);
-    params.pick = 0.9;
+    params.pick = Math.max(params.pick, 0.9);
   } else {
     const relief = level > HARD_EVERY && level % HARD_EVERY === 1;
     params = paramsFromBand(band, relief ? t - 0.3 : t);
@@ -115,6 +120,7 @@ export function paramsForLevel(level: number): { params: LevelParams; tier: Tier
   // Skryté barvy až od zaváděcího levelu.
   if (level < HIDDEN_INTRO_LEVEL) params.hidden = 0;
   if (level === HIDDEN_INTRO_LEVEL) params.hidden = 2;
+  params.bottles = Math.min(params.bottles, MAX_BOTTLES);
   params.colors = Math.max(1, Math.min(params.colors, MAX_COLORS, params.bottles - params.empties));
   return { params, tier };
 }

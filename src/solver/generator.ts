@@ -1,4 +1,4 @@
-import { GEN, GENERATOR_VERSION, paramsForLevel } from '../core/config.ts';
+import { CAPACITY, GEN, GENERATOR_VERSION, paramsForLevel } from '../core/config.ts';
 import { createRng, hashSeed, type Rng } from '../core/rng.ts';
 import type { LevelDef, LevelParams, Move, Unit } from '../core/types.ts';
 import { HIDDEN } from './board.ts';
@@ -19,23 +19,6 @@ export interface Candidate {
 }
 
 const now = (): number => (typeof performance !== 'undefined' ? performance.now() : Date.now());
-
-/** Kapacity lahví: většinou 4, s rostoucí obtížností víc variací v rozsahu capMin–capMax. */
-function pickCapacities(p: LevelParams, rng: Rng): { targetCaps: number[]; spareCaps: number[] } {
-  const base = Math.min(Math.max(4, p.capMin), p.capMax);
-  const varied = p.capMin !== p.capMax;
-  const targets = Math.max(1, p.bottles - p.empties);
-  const targetCaps: number[] = [];
-  for (let i = 0; i < targets; i++) {
-    targetCaps.push(varied && rng.chance(0.45) ? rng.int(p.capMin, p.capMax) : base);
-  }
-  // Náhradní lahve mají aspoň základní kapacitu, ať jsou užitečné.
-  const spareCaps: number[] = [];
-  for (let i = 0; i < p.empties; i++) {
-    spareCaps.push(varied && rng.chance(0.5) ? rng.int(base, p.capMax) : base);
-  }
-  return { targetCaps, spareCaps };
-}
 
 /** Délka souvislého bloku barvy `c` na vrcholu lahve. */
 function topRun(bottle: number[]): number {
@@ -140,23 +123,22 @@ function emptyCount(b: number[][]): number {
 
 /** Jeden kandidát: náhodná zpětná procházka z vyřešeného stavu. */
 export function buildCandidate(p: LevelParams, rng: Rng): Candidate | null {
-  const { targetCaps, spareCaps } = pickCapacities(p, rng);
-  const colors = Math.min(p.colors, targetCaps.length);
+  // Všechny lahve mají stejnou kapacitu. Lahví bývá víc než barev, takže barvy zaplní víc lahví;
+  // rozdělené rovnoměrně, ať žádná barva nemá výrazně víc možností, kam přelít (jinak je level lehčí).
+  const targets = Math.max(1, p.bottles - p.empties);
+  const colors = Math.min(p.colors, targets);
   const owner: number[] = [];
-  for (let i = 0; i < targetCaps.length; i++) owner.push(i < colors ? i : rng.int(0, colors - 1));
+  for (let i = 0; i < targets; i++) owner.push(i % colors);
   rng.shuffle(owner);
 
-  const caps = targetCaps.concat(spareCaps);
-  const b: number[][] = caps.map((cap, i) => (i < targetCaps.length ? new Array<number>(cap).fill(owner[i]) : []));
+  const capsS: number[] = new Array<number>(targets + p.empties).fill(CAPACITY);
+  const b: number[][] = capsS.map((cap, i) => (i < targets ? new Array<number>(cap).fill(owner[i]) : []));
   // Promíchej pořadí lahví, ať prázdné nejsou vždy na konci.
-  const order = rng.shuffle(caps.map((_, i) => i));
-  const capsS = order.map((i) => caps[i]);
-  const bS = order.map((i) => b[i]);
+  const bS = rng.shuffle(b.map((_, i) => i)).map((i) => b[i]);
 
   const desiredEmpty = p.partial > 0 ? Math.max(1, p.empties - 1) : p.empties;
   const steps = 20 + capsS.length * WEIGHTS.stepsPerBottle;
-  let totalUnits = 0;
-  for (const c of targetCaps) totalUnits += c;
+  const totalUnits = targets * CAPACITY;
   const history: RevMove[] = [];
   let best: { b: number[][]; history: RevMove[]; score: number; mix: number } | null = null;
   let last: RevMove | null = null;

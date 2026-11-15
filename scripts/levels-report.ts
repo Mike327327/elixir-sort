@@ -10,7 +10,7 @@ const to = Number(process.argv[3] ?? 300);
 const pad = (v: string | number, n: number) => String(v).padStart(n);
 console.log(
   [
-    pad('lvl', 4), pad('tier', 8), pad('bar', 4), pad('lah', 4), pad('prz', 4), pad('kap', 5),
+    pad('lvl', 4), pad('tier', 8), pad('bar', 4), pad('lah', 4), pad('prz', 4),
     pad('skr', 4), pad('pick', 5), pad('obt', 5), pad('fail', 5), pad('řeš', 4), pad('kand', 5), pad('ms', 5),
   ].join(' '),
 );
@@ -23,11 +23,10 @@ for (let level = from; level <= to; level++) {
   const m = def.meta;
   total += m.ms;
   max = Math.max(max, m.ms);
-  const caps = `${Math.min(...def.capacities)}-${Math.max(...def.capacities)}`;
   console.log(
     [
       pad(level, 4), pad(def.tier, 8), pad(def.colors, 4), pad(def.capacities.length, 4),
-      pad(def.bottles.filter((b) => b.length === 0).length, 4), pad(caps, 5), pad(def.hidden.length, 4),
+      pad(def.bottles.filter((b) => b.length === 0).length, 4), pad(def.hidden.length, 4),
       pad(p.pick.toFixed(2), 5), pad(m.difficulty.toFixed(2), 5), pad(m.failRate.toFixed(2), 5),
       pad(m.solutionLength, 4), pad(m.candidates, 5), pad(m.ms, 5),
     ].join(' '),

@@ -1,7 +1,7 @@
 /**
  * Rozložení lahví na hrací ploše. Závisí jen na kapacitách (ne na obsahu),
- * takže se během hry nemění. Lahve podobné výšky se řadí do stejné řady,
- * aby se i 26 lahví s různými kapacitami vešlo na iPhone SE.
+ * takže se během hry nemění. Generátor dává všem lahvím stejnou kapacitu; rozložení
+ * zvládá i různé (lahve podobné výšky řadí do stejné řady), kdyby se k nim hra vrátila.
  */
 
 export interface BottleGeom {
